@@ -576,9 +576,9 @@ async function loadWarehouse(){
 
 // dodanie nowej pozycji
 async function addWarehouse(){
-    const name=document.getElementById("whName").value;
-    const number=document.getElementById("whNumber").value;
-    const qty=parseInt(document.getElementById("whQty").value);
+    const name=document.getElementById("name").value;
+    const number=document.getElementById("number").value;
+    const qty=parseInt(document.getElementById("qty").value);
 
     if(!name || !number || isNaN(qty)) return;
 
