@@ -177,7 +177,7 @@ li{
 <input id="clientName" placeholder="Imię i nazwisko" list="clientsList" oninput="fillClientData()">
 <datalist id="clientsList"></datalist>
 <input id="clientPhone" placeholder="Telefon">
-<input id="deviceName" placeholder="Urządzenie">
+<input id="deviceName" placeholder="Maszyna/Urządzenie">
 <p>Numer zlecenia: <span id="orderNumber"></span></p>
 <p id="editInfo" style="color:red; display:none; margin-top:4px;">Tryb edycji istniejącego zlecenia</p>
 </div>
@@ -247,6 +247,7 @@ li{
     <input id="whName" placeholder="Nazwa części">
     <input id="whNumber" placeholder="Numer części">
     <input id="whQty" type="number" placeholder="Ilość">
+    <input id="whPrice" type="number" placeholder="Cena">
     <button onclick="addWarehouse()">Dodaj</button>
 </div>
 <ul id="warehouseList"></ul>
@@ -278,7 +279,7 @@ async function generateOrderNumber(){
     const d = String(now.getDate()).padStart(2,"0");
     const datePrefix = `${y}${m}${d}`;
 
-    const { data, error, count } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from("orders")
         .select("id", { count: "exact", head: false })
         .ilike("order_number", `${datePrefix}-%`);
@@ -325,7 +326,7 @@ function fillClientData(){
     const nameInput = document.getElementById("clientName").value.trim();
     if(!nameInput) return;
 
-    const client = orders.find(o => 
+    const client = orders.find(o =>
         (o.client_name || "").toLowerCase() === nameInput.toLowerCase()
     );
 
@@ -511,7 +512,7 @@ async function saveOrder(){
 
     if(error){
         console.log(error);
-        alert("Błąd zapisu do bazy");
+        alert("Blad zapisu do bazy");
         return;
     }
 
@@ -552,7 +553,7 @@ async function updateOrder(){
 
     if(error){
         console.log(error);
-        alert("Błąd aktualizacji zlecenia");
+        alert("Blad aktualizacji zlecenia");
         return;
     }
 
@@ -592,10 +593,11 @@ async function renderOrders(){
         div.className="card";
         div.innerHTML=`Numer: ${o.order_number}<br>
         Klient: ${o.client_name}<br>
-        Koszt: ${o.total} zł<br>
-        <button class="small-btn" onclick="showOrder('${o.order_number}')">Podgląd</button>
+        Koszt: ${o.total} zl<br>
+        <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
         <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
-        <button class="small-btn" onclick="deleteOrder(${o.id})">Usuń</button>`;
+        <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
+        <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
         list.appendChild(div);
     });
 
@@ -611,16 +613,16 @@ function showOrder(num){
     Numer zlecenia: ${o.order_number}<br>
     Klient: ${o.client_name}<br>
     Telefon: ${o.client_phone}<br>
-    Urządzenie: ${o.device_name}<br>
-    <h4>Części</h4>
-    ${Array.isArray(o.parts)?o.parts.map(p=>`${p.name} ${p.qty} x ${p.price} zł`).join("<br>"):""}
-    <h4>Wykonane czynności</h4>
+    Maszyna/Urzadzenie: ${o.device_name}<br>
+    <h4>Czesci</h4>
+    ${Array.isArray(o.parts)?o.parts.map(p=>`${p.name} ${p.qty} x ${p.price} zl`).join("<br>"):""}
+    <h4>Wykonane czynnosci</h4>
     ${Array.isArray(o.activities)?o.activities.map(a=>`- ${a}`).join("<br>"):""}
     <h4>Godziny</h4>
     ${Array.isArray(o.hours)?o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
     <h4>Dojazd</h4>
     ${Array.isArray(o.travels)?o.travels.map(k=>`${k} km`).join("<br>"):""}
-    <h3>Razem: ${o.total} zł</h3>
+    <h3>Razem: ${o.total} zl</h3>
     `;
 }
 
@@ -654,10 +656,35 @@ function editOrder(num){
     setEditMode(true);
 }
 
+// tworzenie PDF z historii
+function generatePdfFromHistory(orderNum){
+    const o = orders.find(x => x.order_number === orderNum);
+    if(!o) return;
+
+    // wypelnij stan i pola formularza na podstawie wybranego zlecenia
+    orderNumber = o.order_number;
+    document.getElementById("clientName").value = o.client_name || "";
+    document.getElementById("clientPhone").value = o.client_phone || "";
+    document.getElementById("deviceName").value = o.device_name || "";
+
+    dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
+    parts = Array.isArray(o.parts) ? [...o.parts] : [];
+    travels = Array.isArray(o.travels) ? [...o.travels] : [];
+    activities = Array.isArray(o.activities) ? [...o.activities] : [];
+
+    renderHours();
+    renderParts();
+    renderKm();
+    renderActivities();
+    calculate();
+
+    generatePDF();
+}
+
 // ---------- USUWANIE ZLECENIA ----------
 async function deleteOrder(id){
     if(!id) return;
-    if(!confirm("Czy na pewno chcesz usunąć to zlecenie?")) return;
+    if(!confirm("Czy na pewno chcesz usunac to zlecenie?")) return;
 
     const { error } = await supabaseClient
         .from("orders")
@@ -666,7 +693,7 @@ async function deleteOrder(id){
 
     if(error){
         console.log("Delete order error", error);
-        alert("Błąd usuwania zlecenia");
+        alert("Blad usuwania zlecenia");
         return;
     }
 
@@ -721,8 +748,9 @@ async function addWarehouse(){
     const name = document.getElementById("whName").value;
     const number = document.getElementById("whNumber").value;
     const qty = parseInt(document.getElementById("whQty").value);
+    const price = parseFloat(document.getElementById("whPrice").value);
 
-    if(!name || !number || isNaN(qty)) return;
+    if(!name || !number || isNaN(qty) || isNaN(price)) return;
 
     const { error } = await supabaseClient
         .from("warehouse")
@@ -730,23 +758,25 @@ async function addWarehouse(){
             name,
             number,
             qty,
+            price,
             created_at: new Date().toISOString()
         }]);
 
     if(error){
         console.log("Warehouse insert error", error);
-        alert("Błąd zapisu magazynu");
+        alert("Blad zapisu magazynu");
         return;
     }
 
     document.getElementById("whName").value = "";
     document.getElementById("whNumber").value = "";
     document.getElementById("whQty").value = "";
+    document.getElementById("whPrice").value = "";
 
     loadWarehouse();
 }
 
-// edycja pól name/number/qty
+// edycja pól name/number/qty/price
 async function editWarehouseItem(index, field, value){
     const item = warehouse[index];
     if(!item) return;
@@ -758,6 +788,8 @@ async function editWarehouseItem(index, field, value){
         newData.number = value;
     }else if(field === 'qty'){
         newData.qty = parseInt(value) || 0;
+    }else if(field === 'price'){
+        newData.price = parseFloat(value) || 0;
     }
 
     const { error } = await supabaseClient
@@ -767,7 +799,7 @@ async function editWarehouseItem(index, field, value){
 
     if(error){
         console.log("Warehouse update error", error);
-        alert("Błąd aktualizacji magazynu");
+        alert("Blad aktualizacji magazynu");
         return;
     }
 
@@ -790,7 +822,7 @@ async function changeWarehouseQty(index, delta){
 
     if(error){
         console.log("Warehouse qty update error", error);
-        alert("Błąd zmiany ilości");
+        alert("Blad zmiany ilosci");
         return;
     }
 
@@ -810,7 +842,7 @@ async function removeWarehouse(index){
 
     if(error){
         console.log("Warehouse delete error", error);
-        alert("Błąd usuwania z magazynu");
+        alert("Blad usuwania z magazynu");
         return;
     }
 
@@ -831,13 +863,17 @@ function renderWarehouse(){
             <input type="text" value="${p.number}"
                    onchange="editWarehouseItem(${i}, 'number', this.value)"
                    class="inline-input">
-            ilość:
+            ilosc:
             <input type="number" value="${p.qty}"
                    onchange="editWarehouseItem(${i}, 'qty', this.value)"
                    class="inline-qty">
+            cena:
+            <input type="number" value="${p.price || 0}"
+                   onchange="editWarehouseItem(${i}, 'price', this.value)"
+                   class="inline-qty">
             <button class="small-btn" onclick="changeWarehouseQty(${i}, 1)">+1</button>
             <button class="small-btn" onclick="changeWarehouseQty(${i}, -1)">-1</button>
-            <button class="small-btn" onclick="removeWarehouse(${i})">Usuń</button>
+            <button class="small-btn" onclick="removeWarehouse(${i})">Usun</button>
         `;
         list.appendChild(li);
     });
@@ -854,6 +890,7 @@ function updatePartsSuggestions(){
         opt.value = item.name;
         opt.setAttribute("data-number", item.number);
         opt.setAttribute("data-qty", item.qty);
+        opt.setAttribute("data-price", item.price || 0);
         datalist.appendChild(opt);
     });
 }
@@ -891,6 +928,17 @@ async function applyWarehouseUsage(partsUsed){
 }
 
 // ---------- PDF ----------
+
+// funkcja do usuwania polskich znakow z dowolnego tekstu
+function stripPolishChars(text){
+    if(!text) return "";
+    const map = {
+        'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z',
+        'Ą':'A','Ć':'C','Ę':'E','Ł':'L','Ń':'N','Ó':'O','Ś':'S','Ź':'Z','Ż':'Z'
+    };
+    return text.split("").map(ch => map[ch] || ch).join("");
+}
+
 function generatePDF(){
     const {jsPDF} = window.jspdf;
     const doc = new jsPDF({
@@ -899,17 +947,18 @@ function generatePDF(){
         format: 'a4'
     });
 
-    const clientName = document.getElementById("clientName").value || "—";
-    const clientPhone = document.getElementById("clientPhone").value || "—";
-    const deviceName = document.getElementById("deviceName").value || "—";
-    const totalCost = document.getElementById("totalCost").innerText || "0";
-    const laborCostVal = document.getElementById("laborCost").innerText || "0";
-    const travelCostVal = document.getElementById("travelCost").innerText || "0";
-    const partsCostVal = document.getElementById("partsCost").innerText || "0";
+    // pobierz dane i od razu oczysc z polskich znakow
+    const clientName = stripPolishChars(document.getElementById("clientName").value || "—");
+    const clientPhone = stripPolishChars(document.getElementById("clientPhone").value || "—");
+    const deviceName = stripPolishChars(document.getElementById("deviceName").value || "—");
+    const totalCost = stripPolishChars(document.getElementById("totalCost").innerText || "0");
+    const laborCostVal = stripPolishChars(document.getElementById("laborCost").innerText || "0");
+    const travelCostVal = stripPolishChars(document.getElementById("travelCost").innerText || "0");
+    const partsCostVal = stripPolishChars(document.getElementById("partsCost").innerText || "0");
 
     let yPos = 20;
 
-    // nagłówek
+    // naglowek
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.text("PROTOKOL NAPRAWY", 105, yPos, {align: 'center'});
@@ -917,7 +966,7 @@ function generatePDF(){
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text("Numer zlecenia: " + orderNumber, 105, yPos, {align: 'center'});
+    doc.text("Numer zlecenia: " + stripPolishChars(orderNumber), 105, yPos, {align: 'center'});
     yPos += 12;
 
     // dane klienta w ramce
@@ -936,10 +985,10 @@ function generatePDF(){
     yPos += 5;
     doc.text("Telefon: " + clientPhone, 20, yPos);
     yPos += 5;
-    doc.text("Urzadzenie: " + deviceName, 20, yPos);
+    doc.text("Maszyna/Urzadzenie: " + deviceName, 20, yPos);
     yPos += 10;
 
-    // tabela części
+    // tabela czesci
     if(parts.length > 0){
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
@@ -947,10 +996,10 @@ function generatePDF(){
         yPos += 4;
 
         const partsBody = parts.map(p => [
-            p.name,
-            p.qty.toString(),
-            p.price.toFixed(2) + " zl",
-            (p.price * p.qty).toFixed(2) + " zl"
+            stripPolishChars(p.name || ""),
+            String(p.qty || 0),
+            (p.price || 0).toFixed(2) + " zl",
+            ((p.price || 0) * (p.qty || 0)).toFixed(2) + " zl"
         ]);
 
         doc.autoTable({
@@ -958,14 +1007,14 @@ function generatePDF(){
             head: [['Nazwa', 'Ilosc', 'Cena jedn.', 'Razem']],
             body: partsBody,
             theme: 'grid',
-            headStyles: { 
-                fillColor: [37, 99, 235], 
-                textColor: 255, 
+            headStyles: {
+                fillColor: [37, 99, 235],
+                textColor: 255,
                 fontStyle: 'bold',
                 halign: 'center'
             },
-            styles: { 
-                fontSize: 9, 
+            styles: {
+                fontSize: 9,
                 cellPadding: 3,
                 font: 'helvetica'
             },
@@ -981,8 +1030,9 @@ function generatePDF(){
         yPos = doc.lastAutoTable.finalY + 8;
     }
 
-    // wykonane czynności
-    if(activities.length > 0){
+    // wykonane czynnosci
+    const cleanActivities = activities.map(a => stripPolishChars(a));
+    if(cleanActivities.length > 0){
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.text("Wykonane czynnosci serwisowe", 20, yPos);
@@ -990,12 +1040,12 @@ function generatePDF(){
 
         doc.setDrawColor(200);
         doc.setFillColor(250, 250, 250);
-        const actHeight = activities.length * 5 + 4;
+        const actHeight = cleanActivities.length * 5 + 4;
         doc.rect(15, yPos-2, 180, actHeight, 'FD');
 
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        activities.forEach(act => {
+        cleanActivities.forEach(act => {
             doc.text("- " + act, 20, yPos);
             yPos += 5;
         });
@@ -1018,7 +1068,7 @@ function generatePDF(){
         startY: yPos,
         body: costsBody,
         theme: 'plain',
-        styles: { 
+        styles: {
             fontSize: 10,
             cellPadding: 2,
             font: 'helvetica'
@@ -1032,7 +1082,7 @@ function generatePDF(){
 
     yPos = doc.lastAutoTable.finalY + 8;
 
-    // łączna cena w ramce
+    // laczna cena w ramce
     doc.setDrawColor(37, 99, 235);
     doc.setFillColor(239, 246, 255);
     doc.setLineWidth(0.5);
@@ -1047,9 +1097,9 @@ function generatePDF(){
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
-    doc.text("Wygenerowano: " + new Date().toLocaleString('pl-PL'), 105, yPos, {align: 'center'});
+    doc.text("Wygenerowano: " + stripPolishChars(new Date().toLocaleString('pl-PL')), 105, yPos, {align: 'center'});
 
-    doc.save("zlecenie_" + orderNumber + ".pdf");
+    doc.save("zlecenie_" + stripPolishChars(orderNumber) + ".pdf");
 }
 
 // ---------- START ----------
