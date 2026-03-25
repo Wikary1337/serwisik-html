@@ -5,6 +5,12 @@
 <meta charset="UTF-8">
 <title>System Serwisowy</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<title>System Serwisowy</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
@@ -197,7 +203,12 @@ margin-right:10px;
 
 
 <script>
+/* ---------- SUPABASE ---------- */
 
+const SUPABASE_URL = "https://avgrfeghycrsawaoiiil.supabase.co"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2Z3JmZWdoeWNyc2F3YW9paWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzQ4MTAsImV4cCI6MjA5MDAxMDgxMH0.q2HguQj2veHNuvyE9YC8XATymfa2pcRrVtW8mEpJJ-c"
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 let dailyHours=[]
 let parts=[]
 let travels=[]
@@ -394,35 +405,51 @@ document.getElementById("totalCost").innerText=total
 
 /* ---------- ZAPIS ---------- */
 
-function saveOrder(){
+async function saveOrder(){
 
-orders=JSON.parse(localStorage.getItem("orders")||"[]")
+const clientName=document.getElementById("clientName").value
+const clientPhone=document.getElementById("clientPhone").value
+const deviceName=document.getElementById("deviceName").value
+
+const total=document.getElementById("totalCost").innerText
 
 const order={
 
-orderNumber,
+order_number:orderNumber,
 
-clientName:document.getElementById("clientName").value,
+client_name:clientName,
 
-clientPhone:document.getElementById("clientPhone").value,
+client_phone:clientPhone,
 
-deviceName:document.getElementById("deviceName").value,
+device_name:deviceName,
 
-parts,
+parts:parts,
 
-dailyHours,
+hours:dailyHours,
 
-travels,
+travels:travels,
 
-total:document.getElementById("totalCost").innerText
+total:total
 
 }
 
-orders.unshift(order)
+/* zapis do supabase */
 
-localStorage.setItem("orders",JSON.stringify(orders))
+const { error } = await supabaseClient
+.from("orders")
+.insert([order])
 
-alert("Zapisano zlecenie")
+if(error){
+
+alert("Błąd zapisu do bazy")
+
+console.log(error)
+
+return
+
+}
+
+alert("Zlecenie zapisane w bazie")
 
 renderOrders()
 
@@ -431,9 +458,22 @@ renderOrders()
 
 /* ---------- HISTORIA ---------- */
 
-function renderOrders(){
+async function renderOrders(){
 
-orders=JSON.parse(localStorage.getItem("orders")||"[]")
+const { data, error } = await supabaseClient
+.from("orders")
+.select("*")
+.order("id",{ascending:false})
+
+if(error){
+
+console.log(error)
+
+return
+
+}
+
+orders=data
 
 const search=document.getElementById("search").value.toLowerCase()
 
@@ -442,21 +482,24 @@ const list=document.getElementById("ordersList")
 list.innerHTML=""
 
 orders
-
-.filter(o=>o.clientName.toLowerCase().includes(search))
-
+.filter(o=>(o.client_name||"").toLowerCase().includes(search))
 .forEach(o=>{
 
 const div=document.createElement("div")
 
 div.className="card"
 
-div.innerHTML=
+div.innerHTML=`
 
-`Numer: ${o.orderNumber}<br>
-Klient: ${o.clientName}<br>
+Numer: ${o.order_number}<br>
+Klient: ${o.client_name}<br>
 Koszt: ${o.total} zł<br>
-<button onclick="showOrder('${o.orderNumber}')">Otwórz</button>`
+
+<button onclick="showOrder('${o.order_number}')">
+Otwórz
+</button>
+
+`
 
 list.appendChild(div)
 
@@ -466,23 +509,21 @@ list.appendChild(div)
 
 function showOrder(num){
 
-orders=JSON.parse(localStorage.getItem("orders")||"[]")
-
-const o=orders.find(x=>x.orderNumber===num)
+const o=orders.find(x=>x.order_number===num)
 
 const div=document.getElementById("orderDetails")
 
-div.innerHTML=
+div.innerHTML=`
 
-`<h3>${o.orderNumber}</h3>
+<h3>${o.order_number}</h3>
 
-Klient: ${o.clientName}<br>
-Telefon: ${o.clientPhone}<br>
-Urządzenie: ${o.deviceName}<br>
+Klient: ${o.client_name}<br>
+Telefon: ${o.client_phone}<br>
+Urządzenie: ${o.device_name}<br>
 
 <h4>Godziny</h4>
 
-${o.dailyHours.map(h=>`${h.date} ${h.hours}h`).join("<br>")}
+${o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>")}
 
 <h4>Części</h4>
 
@@ -492,7 +533,9 @@ ${o.parts.map(p=>`${p.name} ${p.qty} x ${p.price}`).join("<br>")}
 
 ${o.travels.map(k=>`${k} km`).join("<br>")}
 
-<h3>Razem: ${o.total} zł</h3>`
+<h3>Razem: ${o.total} zł</h3>
+
+`
 
 }
 
