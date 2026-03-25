@@ -10,8 +10,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
 body{
-    font-family:Arial;
+    font-family:Arial, sans-serif;
     background:#f3f3f3;
     padding:30px;
 }
@@ -21,42 +26,124 @@ body{
     background:white;
     padding:20px;
     border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
-input,button{
+h1{
+    margin-bottom:10px;
+}
+h2{
+    margin-top:10px;
+}
+input, button{
+    font-family:inherit;
+}
+input{
     width:100%;
-    padding:10px;
-    margin-top:8px;
+    padding:8px 10px;
+    margin-top:6px;
+    border:1px solid #ccc;
+    border-radius:4px;
+}
+input:focus{
+    outline:none;
+    border-color:#2563eb;
+    box-shadow:0 0 0 1px rgba(37,99,235,0.3);
 }
 button{
-    background:#2563eb;
-    color:white;
+    padding:10px 16px;
+    margin-top:10px;
     border:none;
+    border-radius:4px;
+    background:#2563eb;
+    color:#fff;
     cursor:pointer;
+    font-weight:600;
+    transition:background 0.15s ease, transform 0.05s ease;
+}
+button:hover{
+    background:#1d4ed8;
+}
+button:active{
+    transform:scale(0.98);
 }
 .card{
-    border:1px solid #ddd;
-    padding:15px;
-    margin-top:20px;
+    border:1px solid #e5e7eb;
+    padding:16px;
+    margin-top:18px;
     border-radius:8px;
+}
+.card h3{
+    margin-bottom:6px;
+}
+.card p{
+    margin-top:6px;
+}
+.tabs{
+    margin-bottom:10px;
 }
 .tabs button{
     width:auto;
-    margin-right:10px;
+    margin-right:8px;
+    margin-top:0;
+    background:#e5e7eb;
+    color:#111827;
+    font-weight:500;
+}
+.tabs button:hover{
+    background:#d1d5db;
 }
 .small-btn{
     width:auto;
     padding:4px 8px;
     margin-left:4px;
+    margin-top:0;
+    font-size:12px;
 }
 .inline-input{
-    width:130px;
-    padding:4px;
+    width:160px;
+    padding:4px 6px;
     margin-top:0;
+    margin-right:4px;
 }
 .inline-qty{
-    width:60px;
-    padding:4px;
+    width:70px;
+    padding:4px 6px;
     margin-top:0;
+    margin-right:4px;
+}
+ul{
+    list-style:none;
+    margin-top:8px;
+}
+li{
+    margin-bottom:6px;
+}
+
+/* sekcja podsumowania – przyciski w jednej linii na dużych ekranach */
+.summary-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+}
+.summary-actions button{
+    flex:1 1 180px;
+}
+
+/* responsywność na mobile */
+@media (max-width:600px){
+    body{
+        padding:10px;
+    }
+    .container{
+        padding:12px;
+    }
+    .card{
+        padding:12px;
+    }
+    .inline-input{
+        width:120px;
+    }
 }
 </style>
 </head>
@@ -80,12 +167,12 @@ button{
 <input id="clientPhone" placeholder="Telefon">
 <input id="deviceName" placeholder="Urządzenie">
 <p>Numer zlecenia: <span id="orderNumber"></span></p>
-<p id="editInfo" style="color:red; display:none;">Tryb edycji istniejącego zlecenia</p>
+<p id="editInfo" style="color:red; display:none; margin-top:4px;">Tryb edycji istniejącego zlecenia</p>
 </div>
 
 <div class="card">
 <h3>Czas pracy</h3>
-<input id="laborRate" type="number" value="100">
+<input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
 <input type="date" id="workDate">
 <input type="number" id="hoursInput" placeholder="Godziny">
 <button onclick="addHours()">Dodaj godziny</button>
@@ -98,7 +185,7 @@ button{
 <h3>Części</h3>
 <input id="partName" placeholder="Nazwa części">
 <input id="partPrice" type="number" placeholder="Cena">
-<input id="partQty" type="number" value="1">
+<input id="partQty" type="number" value="1" placeholder="Ilość">
 <button onclick="addPart()">Dodaj część</button>
 <ul id="partsList"></ul>
 <p>Suma części: <span id="partsCost">0</span> zł</p>
@@ -107,7 +194,7 @@ button{
 <div class="card">
 <h3>Dojazd</h3>
 <input id="kmInput" type="number" placeholder="Kilometry">
-<input id="kmRate" type="number" value="1">
+<input id="kmRate" type="number" value="1" placeholder="Stawka za km">
 <button onclick="addKm()">Dodaj kilometry</button>
 <ul id="kmList"></ul>
 <p>Koszt dojazdu: <span id="travelCost">0</span> zł</p>
@@ -116,10 +203,11 @@ button{
 <div class="card">
 <h3>Podsumowanie</h3>
 <p>Łączna cena: <span id="totalCost">0</span> zł</p>
-<!-- dwa przyciski, jeden widoczny w trybie nowego, drugi w trybie edycji -->
-<button id="saveNewBtn" onclick="saveOrder()">Zapisz zlecenie</button>
-<button id="updateBtn" style="display:none;" onclick="updateOrder()">Zapisz zmiany</button>
-<button onclick="generatePDF()">Generuj PDF</button>
+<div class="summary-actions">
+    <button id="saveNewBtn" onclick="saveOrder()">Zapisz zlecenie</button>
+    <button id="updateBtn" style="display:none;" onclick="updateOrder()">Zapisz zmiany</button>
+    <button onclick="generatePDF()">Generuj PDF</button>
+</div>
 </div>
 </div>
 
@@ -128,8 +216,8 @@ button{
 <h2>Historia zleceń</h2>
 <input id="search" placeholder="Szukaj klienta" oninput="renderOrders()">
 <div id="ordersList"></div>
-<h3>Szczegóły zlecenia</h3>
-<div id="orderDetails"></div>
+<h3 style="margin-top:16px;">Szczegóły zlecenia</h3>
+<div id="orderDetails" style="margin-top:8px;"></div>
 </div>
 
 <!-- ================= MAGAZYN ================= -->
@@ -211,7 +299,7 @@ function renderHours(){
     list.innerHTML="";
     dailyHours.forEach((h,i)=>{
         const li=document.createElement("li");
-        li.innerHTML=`${h.date} <input type="number" value="${h.hours}" onchange="editHours(${i},this.value)" style="width:60px"> <button onclick="removeHours(${i})">Usuń</button>`;
+        li.innerHTML=`${h.date} <input type="number" value="${h.hours}" onchange="editHours(${i},this.value)" style="width:60px; margin-left:6px;"> <button class="small-btn" onclick="removeHours(${i})">Usuń</button>`;
         list.appendChild(li);
     });
     calculate();
@@ -290,7 +378,7 @@ function renderKm(){
     list.innerHTML="";
     travels.forEach((k,i)=>{
         const li=document.createElement("li");
-        li.innerHTML=`${k} km <button onclick="removeKm(${i})">Usuń</button>`;
+        li.innerHTML=`${k} km <button class="small-btn" onclick="removeKm(${i})">Usuń</button>`;
         list.appendChild(li);
     });
     calculate();
@@ -302,8 +390,8 @@ function removeKm(i){
 
 // ---------- KALKULACJA ----------
 function calculate(){
-    const laborRate=parseFloat(document.getElementById("laborRate").value);
-    const kmRate=parseFloat(document.getElementById("kmRate").value);
+    const laborRate=parseFloat(document.getElementById("laborRate").value || "0");
+    const kmRate=parseFloat(document.getElementById("kmRate").value || "0");
     const totalHours = dailyHours.reduce((s,d)=>s+d.hours,0);
     const laborCost = totalHours*laborRate;
     const partsCost = parts.reduce((s,p)=>s+p.price*p.qty,0);
@@ -311,10 +399,10 @@ function calculate(){
     const travelCost = totalKm*kmRate;
     const total = laborCost + partsCost + travelCost;
     document.getElementById("totalHours").innerText=totalHours;
-    document.getElementById("laborCost").innerText=laborCost;
-    document.getElementById("partsCost").innerText=partsCost;
-    document.getElementById("travelCost").innerText=travelCost;
-    document.getElementById("totalCost").innerText=total;
+    document.getElementById("laborCost").innerText=laborCost.toFixed(2);
+    document.getElementById("partsCost").innerText=partsCost.toFixed(2);
+    document.getElementById("travelCost").innerText=travelCost.toFixed(2);
+    document.getElementById("totalCost").innerText=total.toFixed(2);
 }
 
 // ---------- ZAPIS NOWEGO ZLECENIA ----------
@@ -322,7 +410,7 @@ async function saveOrder(){
     const clientName=document.getElementById("clientName").value;
     const clientPhone=document.getElementById("clientPhone").value;
     const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText);
+    const total=parseFloat(document.getElementById("totalCost").innerText || "0");
 
     const order={
         order_number:orderNumber,
@@ -358,7 +446,7 @@ async function updateOrder(){
     const clientName=document.getElementById("clientName").value;
     const clientPhone=document.getElementById("clientPhone").value;
     const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText);
+    const total=parseFloat(document.getElementById("totalCost").innerText || "0");
 
     const updatedOrder = {
         client_name:clientName,
@@ -407,19 +495,20 @@ async function renderOrders(){
         .order("id",{ascending:false}); // zmień "id" jeśli inna kolumna [web:51]
 
     if(error){console.log(error); return;}
-    orders=data;
-    const search=document.getElementById("search").value.toLowerCase();
+    orders=data || [];
+    const search=document.getElementById("search").value?.toLowerCase() || "";
     const list=document.getElementById("ordersList");
     list.innerHTML="";
-    orders.filter(o=>(o.client_name||"").toLowerCase().includes(search))
+    orders
+    .filter(o=>(o.client_name||"").toLowerCase().includes(search))
     .forEach(o=>{
         const div=document.createElement("div");
         div.className="card";
         div.innerHTML=`Numer: ${o.order_number}<br>
         Klient: ${o.client_name}<br>
         Koszt: ${o.total} zł<br>
-        <button onclick="showOrder('${o.order_number}')">Podgląd</button>
-        <button onclick="editOrder('${o.order_number}')">Edytuj</button>`;
+        <button class="small-btn" onclick="showOrder('${o.order_number}')">Podgląd</button>
+        <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>`;
         list.appendChild(div);
     });
 }
@@ -435,11 +524,11 @@ function showOrder(num){
     Telefon: ${o.client_phone}<br>
     Urządzenie: ${o.device_name}<br>
     <h4>Godziny</h4>
-    ${o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>")}
+    ${Array.isArray(o.hours)?o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
     <h4>Części</h4>
-    ${o.parts.map(p=>`${p.name} ${p.qty} x ${p.price}`).join("<br>")}
+    ${Array.isArray(o.parts)?o.parts.map(p=>`${p.name} ${p.qty} x ${p.price}`).join("<br>"):""}
     <h4>Dojazd</h4>
-    ${o.travels.map(k=>`${k} km`).join("<br>")}
+    ${Array.isArray(o.travels)?o.travels.map(k=>`${k} km`).join("<br>"):""}
     <h3>Razem: ${o.total} zł</h3>
     `;
 }
