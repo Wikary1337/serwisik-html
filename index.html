@@ -3,54 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <title>System Serwisowy</title>
-
-<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
 <style>
-body{
-    font-family:Arial;
-    background:#f3f3f3;
-    padding:30px;
-}
-.container{
-    max-width:900px;
-    margin:auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-}
-input,button{
-    width:100%;
-    padding:10px;
-    margin-top:8px;
-}
-button{
-    background:#2563eb;
-    color:white;
-    border:none;
-    cursor:pointer;
-}
-.card{
-    border:1px solid #ddd;
-    padding:15px;
-    margin-top:20px;
-    border-radius:8px;
-}
-.tabs button{
-    width:auto;
-    margin-right:10px;
-}
+body{font-family:Arial;background:#f3f3f3;padding:30px;}
+.container{max-width:900px;margin:auto;background:white;padding:20px;border-radius:10px;}
+input,button,select{width:100%;padding:10px;margin-top:8px;}
+button{background:#2563eb;color:white;border:none;cursor:pointer;}
+.card{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:8px;}
+.tabs button{width:auto;margin-right:10px;}
 </style>
 </head>
-
 <body>
-
 <div class="container">
 <h1>System Serwisowy</h1>
-
 <div class="tabs">
 <button onclick="showTab('order')">Zlecenie</button>
 <button onclick="showTab('history')">Historia</button>
@@ -69,7 +35,7 @@ button{
 
 <div class="card">
 <h3>Czas pracy</h3>
-<input id="laborRate" type="number" value="100">
+<input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
 <input type="date" id="workDate">
 <input type="number" id="hoursInput" placeholder="Godziny">
 <button onclick="addHours()">Dodaj godziny</button>
@@ -91,7 +57,7 @@ button{
 <div class="card">
 <h3>Dojazd</h3>
 <input id="kmInput" type="number" placeholder="Kilometry">
-<input id="kmRate" type="number" value="1">
+<input id="kmRate" type="number" value="1" placeholder="Stawka za km">
 <button onclick="addKm()">Dodaj kilometry</button>
 <ul id="kmList"></ul>
 <p>Koszt dojazdu: <span id="travelCost">0</span> zł</p>
@@ -124,182 +90,155 @@ button{
 <ul id="warehouseList"></ul>
 </div>
 
-</div> <!-- container -->
+</div>
 
 <script>
-
 // ----------------- SUPABASE -----------------
 const SUPABASE_URL = "https://avgrfeghycrsawaoiiil.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2Z3JmZWdoeWNyc2F3YW9paWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzQ4MTAsImV4cCI6MjA5MDAxMDgxMH0.q2HguQj2veHNuvyE9YC8XATymfa2pcRrVtW8mEpJJ-c";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ----------------- STANY -----------------
+
+// ---------- Zmienne ----------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[];
 let orderNumber = generateOrderNumber();
 document.getElementById("orderNumber").innerText = orderNumber;
 
-// ----------------- FUNKCJE -----------------
+// ---------- FUNKCJE TABS ----------
 function showTab(tab){
-    document.getElementById("order").style.display="none";
-    document.getElementById("history").style.display="none";
-    document.getElementById("warehouse").style.display="none";
-    document.getElementById(tab).style.display="block";
+  document.getElementById("order").style.display="none";
+  document.getElementById("history").style.display="none";
+  document.getElementById("warehouse").style.display="none";
+  document.getElementById(tab).style.display="block";
 }
 
 // ---------- GODZINY ----------
 function addHours(){
-    const date=document.getElementById("workDate").value;
-    const hours=parseFloat(document.getElementById("hoursInput").value);
-    if(!date || isNaN(hours)) return;
-    dailyHours.push({date:date,hours:hours});
-    document.getElementById("hoursInput").value="";
-    renderHours();
+  const date = document.getElementById("workDate").value;
+  const hours = Number(document.getElementById("hoursInput").value);
+  if(!date||!hours) return;
+  dailyHours.push({date,hours});
+  renderHours();
 }
 function renderHours(){
-    const list=document.getElementById("hoursList");
-    list.innerHTML="";
-    dailyHours.forEach((h,i)=>{
-        const li=document.createElement("li");
-        li.innerHTML=`${h.date} <input type="number" value="${h.hours}" onchange="editHours(${i},this.value)" style="width:60px"> <button onclick="removeHours(${i})">Usuń</button>`;
-        list.appendChild(li);
-    });
-    calculate();
+  const list=document.getElementById("hoursList");
+  list.innerHTML="";
+  dailyHours.forEach((h,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`${h.date} <input type="number" value="${h.hours}" onchange="editHours(${i},this.value)" style="width:60px"> <button onclick="removeHours(${i})">Usuń</button>`;
+    list.appendChild(li);
+  });
+  calculate();
 }
-function editHours(i,value){
-    dailyHours[i].hours=Number(value);
-    calculate();
-}
-function removeHours(i){
-    dailyHours.splice(i,1);
-    renderHours();
-}
+function editHours(i,value){dailyHours[i].hours=Number(value);calculate();}
+function removeHours(i){dailyHours.splice(i,1);renderHours();}
 
 // ---------- CZĘŚCI ----------
 function addPart(){
-    const name=document.getElementById("partName").value;
-    const price=parseFloat(document.getElementById("partPrice").value);
-    const qty=parseInt(document.getElementById("partQty").value);
-    if(!name || isNaN(price)) return;
-    parts.push({name,price,qty});
-    renderParts();
+  const name=document.getElementById("partName").value;
+  const price=Number(document.getElementById("partPrice").value);
+  const qty=Number(document.getElementById("partQty").value);
+  if(!name||!price) return;
+  parts.push({name,price,qty});
+  renderParts();
 }
 function renderParts(){
-    const list=document.getElementById("partsList");
-    list.innerHTML="";
-    parts.forEach(p=>{
-        const li=document.createElement("li");
-        li.innerText=`${p.name} ${p.qty} x ${p.price} zł`;
-        list.appendChild(li);
-    });
-    calculate();
+  const list=document.getElementById("partsList");
+  list.innerHTML="";
+  parts.forEach((p,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`${p.name} <input type="number" value="${p.qty}" onchange="editPart(${i},this.value)" style="width:50px"> x ${p.price} zł <button onclick="removePart(${i})">Usuń</button>`;
+    list.appendChild(li);
+  });
+  calculate();
 }
+function editPart(i,value){parts[i].qty=Number(value);calculate();}
+function removePart(i){parts.splice(i,1);renderParts();}
 
 // ---------- KM ----------
 function addKm(){
-    const km=parseFloat(document.getElementById("kmInput").value);
-    if(isNaN(km) || km<=0) return;
-    travels.push(km);
-    document.getElementById("kmInput").value="";
-    renderKm();
+  const km=Number(document.getElementById("kmInput").value);
+  if(!km) return;
+  travels.push(km);
+  renderKm();
 }
 function renderKm(){
-    const list=document.getElementById("kmList");
-    list.innerHTML="";
-    travels.forEach((k,i)=>{
-        const li=document.createElement("li");
-        li.innerHTML=`${k} km <button onclick="removeKm(${i})">Usuń</button>`;
-        list.appendChild(li);
-    });
-    calculate();
+  const list=document.getElementById("kmList"); list.innerHTML="";
+  travels.forEach((k,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`${k} km <button onclick="removeKm(${i})">Usuń</button>`;
+    list.appendChild(li);
+  });
+  calculate();
 }
-function removeKm(i){
-    travels.splice(i,1);
-    renderKm();
-}
+function removeKm(i){travels.splice(i,1);renderKm();}
 
 // ---------- KALKULACJA ----------
 function calculate(){
-    const laborRate=parseFloat(document.getElementById("laborRate").value);
-    const kmRate=parseFloat(document.getElementById("kmRate").value);
-    const totalHours = dailyHours.reduce((s,d)=>s+d.hours,0);
-    const laborCost = totalHours*laborRate;
-    const partsCost = parts.reduce((s,p)=>s+p.price*p.qty,0);
-    const totalKm = travels.reduce((a,b)=>a+b,0);
-    const travelCost = totalKm*kmRate;
-    const total = laborCost + partsCost + travelCost;
-    document.getElementById("totalHours").innerText=totalHours;
-    document.getElementById("laborCost").innerText=laborCost;
-    document.getElementById("partsCost").innerText=partsCost;
-    document.getElementById("travelCost").innerText=travelCost;
-    document.getElementById("totalCost").innerText=total;
+  const laborRate=Number(document.getElementById("laborRate").value);
+  const kmRate=Number(document.getElementById("kmRate").value);
+  const totalHours=dailyHours.reduce((s,d)=>s+d.hours,0);
+  const laborCost=totalHours*laborRate;
+  const partsCost=parts.reduce((s,p)=>s+p.price*p.qty,0);
+  const totalKm=travels.reduce((a,b)=>a+b,0);
+  const travelCost=totalKm*kmRate;
+  const total=laborCost+partsCost+travelCost;
+  document.getElementById("totalHours").innerText=totalHours;
+  document.getElementById("laborCost").innerText=laborCost;
+  document.getElementById("partsCost").innerText=partsCost;
+  document.getElementById("travelCost").innerText=travelCost;
+  document.getElementById("totalCost").innerText=total;
 }
 
-// ---------- ZAPIS DO SUPABASE ----------
+// ---------- SAVE ORDER ----------
 async function saveOrder(){
-    const clientName=document.getElementById("clientName").value;
-    const clientPhone=document.getElementById("clientPhone").value;
-    const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText);
+  const order={
+    order_number: orderNumber,
+    client_name: document.getElementById("clientName").value,
+    client_phone: document.getElementById("clientPhone").value,
+    device_name: document.getElementById("deviceName").value,
+    parts,
+    hours: dailyHours,
+    travels,
+    total: Number(document.getElementById("totalCost").innerText)
+  };
 
-    const order={
-        order_number:orderNumber,
-        client_name:clientName,
-        client_phone:clientPhone,
-        device_name:deviceName,
-        parts:[...parts],
-        hours:[...dailyHours],
-        travels:[...travels],
-        total:total
-    };
+  // Supabase insert
+  const {error} = await supabase.from("orders").insert([order]);
+  if(error){alert("Błąd zapisu: "+error.message); return;}
+  alert("Zapisano zlecenie");
 
-    const {error}=await supabaseClient.from("orders").insert([order]);
-
-    if(error){
-        console.log(error);
-        alert("Błąd zapisu do bazy");
-        return;
-    }
-
-    alert("Zlecenie zapisane w bazie");
-    clearForm();
-    renderOrders();
-}
-
-// ---------- RESET FORMULARZA ----------
-function clearForm(){
-    dailyHours=[]; parts=[]; travels=[];
-    renderHours(); renderParts(); renderKm();
-    document.getElementById("clientName").value="";
-    document.getElementById("clientPhone").value="";
-    document.getElementById("deviceName").value="";
-    orderNumber=generateOrderNumber();
-    document.getElementById("orderNumber").innerText=orderNumber;
+  orderNumber=generateOrderNumber();
+  document.getElementById("orderNumber").innerText=orderNumber;
+  dailyHours=[]; parts=[]; travels=[];
+  renderHours(); renderParts(); renderKm(); renderOrders();
 }
 
 // ---------- HISTORIA ----------
 async function renderOrders(){
-    const {data,error}=await supabaseClient.from("orders").select("*").order("id",{ascending:false});
-    if(error){console.log(error); return;}
-    orders=data;
-    const search=document.getElementById("search").value.toLowerCase();
-    const list=document.getElementById("ordersList");
-    list.innerHTML="";
-    orders.filter(o=>(o.client_name||"").toLowerCase().includes(search))
-    .forEach(o=>{
-        const div=document.createElement("div");
-        div.className="card";
-        div.innerHTML=`Numer: ${o.order_number}<br>
-        Klient: ${o.client_name}<br>
-        Koszt: ${o.total} zł<br>
-        <button onclick="showOrder('${o.order_number}')">Otwórz</button>`;
-        list.appendChild(div);
-    });
+  const {data,error}=await supabase.from("orders").select("*").order('id',{ascending:false});
+  if(error){console.log(error); return;}
+  orders=data;
+  const search=document.getElementById("search").value.toLowerCase();
+  const list=document.getElementById("ordersList");
+  list.innerHTML="";
+  orders.filter(o=>o.client_name.toLowerCase().includes(search))
+        .forEach(o=>{
+          const div=document.createElement("div");
+          div.className="card";
+          div.innerHTML=`
+            Numer: ${o.order_number}<br>
+            Klient: ${o.client_name}<br>
+            Koszt: ${o.total} zł<br>
+            <button onclick="showOrder('${o.order_number}')">Otwórz</button>`;
+          list.appendChild(div);
+        });
 }
-
 function showOrder(num){
-    const o=orders.find(x=>x.order_number===num);
-    const div=document.getElementById("orderDetails");
-    div.innerHTML=`
+  const o=orders.find(x=>x.order_number===num);
+  if(!o) return;
+  const div=document.getElementById("orderDetails");
+  div.innerHTML=`
     <h3>${o.order_number}</h3>
     Klient: ${o.client_name}<br>
     Telefon: ${o.client_phone}<br>
@@ -307,46 +246,42 @@ function showOrder(num){
     <h4>Godziny</h4>
     ${o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>")}
     <h4>Części</h4>
-    ${o.parts.map(p=>`${p.name} ${p.qty} x ${p.price}`).join("<br>")}
+    ${o.parts.map(p=>`${p.name} ${p.qty} x ${p.price} zł`).join("<br>")}
     <h4>Dojazd</h4>
     ${o.travels.map(k=>`${k} km`).join("<br>")}
-    <h3>Razem: ${o.total} zł</h3>
-    `;
+    <h3>Razem: ${o.total} zł</h3>`;
 }
 
 // ---------- MAGAZYN ----------
 function addWarehouse(){
-    const name=document.getElementById("whName").value;
-    const number=document.getElementById("whNumber").value;
-    const qty=parseInt(document.getElementById("whQty").value);
-    warehouse.push({name,number,qty});
-    renderWarehouse();
+  const name=document.getElementById("whName").value;
+  const number=document.getElementById("whNumber").value;
+  const qty=Number(document.getElementById("whQty").value);
+  warehouse.push({name,number,qty});
+  renderWarehouse();
 }
 function renderWarehouse(){
-    const list=document.getElementById("warehouseList");
-    list.innerHTML="";
-    warehouse.forEach(p=>{
-        const li=document.createElement("li");
-        li.innerText=`${p.name} | nr:${p.number} | ilość:${p.qty}`;
-        list.appendChild(li);
-    });
+  const list=document.getElementById("warehouseList"); list.innerHTML="";
+  warehouse.forEach(p=>{
+    const li=document.createElement("li");
+    li.innerText=`${p.name} | nr:${p.number} | ilość:${p.qty}`;
+    list.appendChild(li);
+  });
 }
 
 // ---------- PDF ----------
 function generatePDF(){
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF();
-    doc.text("PROTOKÓŁ NAPRAWY",10,10);
-    doc.text("Numer: "+orderNumber,10,20);
-    doc.text("Klient: "+document.getElementById("clientName").value,10,30);
-    doc.text("Cena: "+document.getElementById("totalCost").innerText+" zł",10,40);
-    doc.save("zlecenie_"+orderNumber+".pdf");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  doc.text("PROTOKÓŁ NAPRAWY",10,10);
+  doc.text("Numer: "+orderNumber,10,20);
+  doc.text("Klient: "+document.getElementById("clientName").value,10,30);
+  doc.text("Cena: "+document.getElementById("totalCost").innerText+" zł",10,40);
+  doc.save("zlecenie_"+orderNumber+".pdf");
 }
 
-// ---------- START ----------
-renderOrders();
-renderWarehouse();
-
+// ---------- Inicjalizacja ----------
+renderOrders(); renderWarehouse();
 </script>
 </body>
 </html>
