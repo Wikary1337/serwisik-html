@@ -610,25 +610,37 @@ async function addWarehouse(){
     const number=document.getElementById("whNumber").value;
     const qty=parseInt(document.getElementById("whQty").value);
     
-    if(!name || !number || isNaN(qty)) return;
-
-    const {error}=await supabaseClient
-        .from("warehouse")
-        .insert([{ name, number, qty }]);
+    console.log("Dane:", {name, number, qty}); // DEBUG
     
-    if(error){
-        console.log(error);
-        alert("Błąd zapisu do magazynu");
+    if(!name || !number || isNaN(qty)) {
+        alert("Wypełnij wszystkie pola!");
         return;
     }
 
-    document.getElementById("whName").value="";
-    document.getElementById("whNumber").value="";
-    document.getElementById("whQty").value="";
-    renderWarehouse();  // Odśwież listę
-    alert("Dodano do magazynu");
+    try {
+        const {data, error} = await supabaseClient
+            .from("warehouse")
+            .insert([{ name, number, qty }]);
+        
+        console.log("RESPONSE:", {data, error}); // DEBUG
+        
+        if(error){
+            console.error("FULL ERROR:", error);
+            alert("BŁĄD: " + error.message);
+            return;
+        }
+        
+        document.getElementById("whName").value="";
+        document.getElementById("whNumber").value="";
+        document.getElementById("whQty").value="";
+        renderWarehouse();
+        alert("✅ Dodano do magazynu");
+        
+    } catch(e) {
+        console.error("EXCEPTION:", e);
+        alert("Wyjątek: " + e.message);
+    }
 }
-
 // ---------- UPDATE W BAZy ----------
 async function editWarehouseItem(index, field, value){
     if(warehouse[index]){
