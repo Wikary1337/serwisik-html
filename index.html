@@ -337,16 +337,23 @@ function fillClientData(){
 }
 
 // ---------- AUTO-CENA CZĘŚCI Z MAGAZYNU ----------
-function fillPartPriceFromWarehouse(){
+async function fillPartPriceFromWarehouse(){
     const partInput = document.getElementById("partName").value.trim();
     if(!partInput) return;
 
-    const item = warehouse.find(w =>
-        (w.name || "").toLowerCase() === partInput.toLowerCase()
-    );
+    // pobierz dokładnie jedną pozycję z magazynu o tej nazwie
+    const { data, error } = await supabaseClient
+        .from("warehouse")
+        .select("price")
+        .ilike("name", partInput);   // case‑insensitive, pozwala na różne wielkości liter
 
-    if(item && typeof item.price === "number"){
-        document.getElementById("partPrice").value = item.price;
+    if(error){
+        console.log("Warehouse price fetch error", error);
+        return;
+    }
+
+    if(data && data.length > 0 && typeof data[0].price === "number"){
+        document.getElementById("partPrice").value = data[0].price;
     }
 }
 
