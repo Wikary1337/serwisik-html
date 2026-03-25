@@ -43,6 +43,21 @@ button{
     width:auto;
     margin-right:10px;
 }
+.small-btn{
+    width:auto;
+    padding:4px 8px;
+    margin-left:4px;
+}
+.inline-input{
+    width:130px;
+    padding:4px;
+    margin-top:0;
+}
+.inline-qty{
+    width:60px;
+    padding:4px;
+    margin-top:0;
+}
 </style>
 </head>
 
@@ -65,6 +80,7 @@ button{
 <input id="clientPhone" placeholder="Telefon">
 <input id="deviceName" placeholder="Urządzenie">
 <p>Numer zlecenia: <span id="orderNumber"></span></p>
+<p id="editInfo" style="color:red; display:none;">Tryb edycji istniejącego zlecenia</p>
 </div>
 
 <div class="card">
@@ -100,7 +116,9 @@ button{
 <div class="card">
 <h3>Podsumowanie</h3>
 <p>Łączna cena: <span id="totalCost">0</span> zł</p>
-<button onclick="saveOrder()">Zapisz zlecenie</button>
+<!-- dwa przyciski, jeden widoczny w trybie nowego, drugi w trybie edycji -->
+<button id="saveNewBtn" onclick="saveOrder()">Zapisz zlecenie</button>
+<button id="updateBtn" style="display:none;" onclick="updateOrder()">Zapisz zmiany</button>
 <button onclick="generatePDF()">Generuj PDF</button>
 </div>
 </div>
@@ -117,10 +135,12 @@ button{
 <!-- ================= MAGAZYN ================= -->
 <div id="warehouse" style="display:none">
 <h2>Magazyn</h2>
-<input id="whName" placeholder="Nazwa części">
-<input id="whNumber" placeholder="Numer części">
-<input id="whQty" type="number" placeholder="Ilość">
-<button onclick="addWarehouse()">Dodaj</button>
+<div class="card">
+    <input id="whName" placeholder="Nazwa części">
+    <input id="whNumber" placeholder="Numer części">
+    <input id="whQty" type="number" placeholder="Ilość">
+    <button onclick="addWarehouse()">Dodaj</button>
+</div>
 <ul id="warehouseList"></ul>
 </div>
 
@@ -136,6 +156,9 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[];
 let orderNumber = generateOrderNumber();
+let currentOrderId = null;           // ID zlecenia w bazie (do update)
+let currentOrderNumber = null;       // numer zlecenia z bazy (do PDF/wyświetlania)
+
 document.getElementById("orderNumber").innerText = orderNumber;
 
 // ----------------- FUNKCJE POMOCNICZE -----------------
@@ -146,6 +169,24 @@ function generateOrderNumber(){
     const d = String(now.getDate()).padStart(2,"0");
     const t = String(now.getTime()).slice(-4);
     return `${y}${m}${d}-${t}`;
+}
+
+function setEditMode(isEdit){
+    const editInfo = document.getElementById("editInfo");
+    const saveNewBtn = document.getElementById("saveNewBtn");
+    const updateBtn = document.getElementById("updateBtn");
+
+    if(isEdit){
+        editInfo.style.display = "block";
+        saveNewBtn.style.display = "none";
+        updateBtn.style.display = "inline-block";
+    }else{
+        editInfo.style.display = "none";
+        saveNewBtn.style.display = "inline-block";
+        updateBtn.style.display = "none";
+        currentOrderId = null;
+        currentOrderNumber = null;
+    }
 }
 
 // ----------------- FUNKCJE -----------------
@@ -197,7 +238,6 @@ function addPart(){
     renderParts();
 }
 
-// NOWE: edycja / usuwanie części
 function removePart(index){
     parts.splice(index,1);
     renderParts();
@@ -223,14 +263,14 @@ function renderParts(){
         li.innerHTML = `
             <input type="text" value="${p.name}"
                    onchange="editPart(${i}, 'name', this.value)"
-                   style="width:150px">
+                   class="inline-input">
             ilość: <input type="number" value="${p.qty}"
                           onchange="editPart(${i}, 'qty', this.value)"
-                          style="width:60px">
+                          class="inline-qty">
             cena: <input type="number" value="${p.price}"
                          onchange="editPart(${i}, 'price', this.value)"
-                         style="width:80px"> zł
-            <button onclick="removePart(${i})">Usuń</button>
+                         class="inline-qty"> zł
+            <button class="small-btn" onclick="removePart(${i})">Usuń</button>
         `;
         list.appendChild(li);
     });
@@ -277,7 +317,7 @@ function calculate(){
     document.getElementById("totalCost").innerText=total;
 }
 
-// ---------- ZAPIS DO SUPABASE ----------
+// ---------- ZAPIS NOWEGO ZLECENIA ----------
 async function saveOrder(){
     const clientName=document.getElementById("clientName").value;
     const clientPhone=document.getElementById("clientPhone").value;
@@ -295,7 +335,7 @@ async function saveOrder(){
         total:total
     };
 
-    const {error}=await supabaseClient.from("orders").insert([order]); // [web:23]
+    const {error}=await supabaseClient.from("orders").insert([order]); // [web:36]
 
     if(error){
         console.log(error);
@@ -304,6 +344,45 @@ async function saveOrder(){
     }
 
     alert("Zlecenie zapisane w bazie");
+    clearForm();
+    renderOrders();
+}
+
+// ---------- UPDATE ISTNIEJĄCEGO ZLECENIA ----------
+async function updateOrder(){
+    if(currentOrderId === null){
+        alert("Brak wybranego zlecenia do edycji");
+        return;
+    }
+
+    const clientName=document.getElementById("clientName").value;
+    const clientPhone=document.getElementById("clientPhone").value;
+    const deviceName=document.getElementById("deviceName").value;
+    const total=parseFloat(document.getElementById("totalCost").innerText);
+
+    const updatedOrder = {
+        client_name:clientName,
+        client_phone:clientPhone,
+        device_name:deviceName,
+        parts:[...parts],
+        hours:[...dailyHours],
+        travels:[...travels],
+        total:total
+    };
+
+    const {error} = await supabaseClient
+        .from("orders")
+        .update(updatedOrder)
+        .eq("id", currentOrderId); // jeśli PK ma inną nazwę, zmień tutaj [web:38]
+
+    if(error){
+        console.log(error);
+        alert("Błąd aktualizacji zlecenia");
+        return;
+    }
+
+    alert("Zlecenie zaktualizowane");
+    setEditMode(false);
     clearForm();
     renderOrders();
 }
@@ -317,6 +396,7 @@ function clearForm(){
     document.getElementById("deviceName").value="";
     orderNumber=generateOrderNumber();
     document.getElementById("orderNumber").innerText=orderNumber;
+    setEditMode(false);
 }
 
 // ---------- HISTORIA ----------
@@ -324,7 +404,7 @@ async function renderOrders(){
     const {data,error}=await supabaseClient
         .from("orders")
         .select("*")
-        .order("id",{ascending:false}); // jeśli nie masz kolumny id, zmień tutaj na swoją [web:18]
+        .order("id",{ascending:false}); // zmień "id" jeśli inna kolumna [web:51]
 
     if(error){console.log(error); return;}
     orders=data;
@@ -338,13 +418,15 @@ async function renderOrders(){
         div.innerHTML=`Numer: ${o.order_number}<br>
         Klient: ${o.client_name}<br>
         Koszt: ${o.total} zł<br>
-        <button onclick="showOrder('${o.order_number}')">Otwórz</button>`;
+        <button onclick="showOrder('${o.order_number}')">Podgląd</button>
+        <button onclick="editOrder('${o.order_number}')">Edytuj</button>`;
         list.appendChild(div);
     });
 }
 
 function showOrder(num){
     const o=orders.find(x=>x.order_number===num);
+    if(!o) return;
     const div=document.getElementById("orderDetails");
     div.innerHTML=`
     <h3>${o.order_number}</h3>
@@ -362,23 +444,95 @@ function showOrder(num){
     `;
 }
 
+// ZAŁADOWANIE ZLECENIA DO FORMULARZA W TRYBIE EDYCJI
+function editOrder(num){
+    const o=orders.find(x=>x.order_number===num);
+    if(!o) return;
+
+    // przełącz na zakładkę zlecenie
+    showTab('order');
+
+    currentOrderId = o.id;
+    currentOrderNumber = o.order_number;
+
+    // dane klienta
+    document.getElementById("clientName").value = o.client_name || "";
+    document.getElementById("clientPhone").value = o.client_phone || "";
+    document.getElementById("deviceName").value = o.device_name || "";
+
+    // numer zlecenia (z bazy, bez generowania nowego)
+    orderNumber = o.order_number;
+    document.getElementById("orderNumber").innerText = orderNumber;
+
+    // godziny / części / dojazd
+    dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
+    parts = Array.isArray(o.parts) ? [...o.parts] : [];
+    travels = Array.isArray(o.travels) ? [...o.travels] : [];
+
+    renderHours();
+    renderParts();
+    renderKm();
+    calculate();
+
+    setEditMode(true);
+}
+
 // ---------- MAGAZYN ----------
 function addWarehouse(){
     const name=document.getElementById("whName").value;
     const number=document.getElementById("whNumber").value;
     const qty=parseInt(document.getElementById("whQty").value);
+    if(!name || !number || isNaN(qty)) return;
+
     warehouse.push({name,number,qty});
     document.getElementById("whName").value="";
     document.getElementById("whNumber").value="";
     document.getElementById("whQty").value="";
     renderWarehouse();
 }
+
+function editWarehouseItem(index, field, value){
+    if(field === 'name'){
+        warehouse[index].name = value;
+    }else if(field === 'number'){
+        warehouse[index].number = value;
+    }else if(field === 'qty'){
+        warehouse[index].qty = parseInt(value) || 0;
+    }
+    renderWarehouse();
+}
+
+function changeWarehouseQty(index, delta){
+    const newQty = (warehouse[index].qty || 0) + delta;
+    warehouse[index].qty = newQty < 0 ? 0 : newQty;
+    renderWarehouse();
+}
+
+function removeWarehouse(index){
+    warehouse.splice(index,1);
+    renderWarehouse();
+}
+
 function renderWarehouse(){
     const list=document.getElementById("warehouseList");
     list.innerHTML="";
-    warehouse.forEach(p=>{
+    warehouse.forEach((p,i)=>{
         const li=document.createElement("li");
-        li.innerText=`${p.name} | nr:${p.number} | ilość:${p.qty}`;
+        li.innerHTML = `
+            <input type="text" value="${p.name}"
+                   onchange="editWarehouseItem(${i}, 'name', this.value)"
+                   class="inline-input">
+            <input type="text" value="${p.number}"
+                   onchange="editWarehouseItem(${i}, 'number', this.value)"
+                   class="inline-input">
+            ilość:
+            <input type="number" value="${p.qty}"
+                   onchange="editWarehouseItem(${i}, 'qty', this.value)"
+                   class="inline-qty">
+            <button class="small-btn" onclick="changeWarehouseQty(${i}, 1)">+1</button>
+            <button class="small-btn" onclick="changeWarehouseQty(${i}, -1)">-1</button>
+            <button class="small-btn" onclick="removeWarehouse(${i})">Usuń</button>
+        `;
         list.appendChild(li);
     });
 }
