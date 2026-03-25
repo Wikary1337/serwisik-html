@@ -566,45 +566,23 @@ function editOrder(num){
     setEditMode(true);
 }
 
-// ---------- MAGAZYN ----------
-function addWarehouse(){
-    const name=document.getElementById("whName").value;
-    const number=document.getElementById("whNumber").value;
-    const qty=parseInt(document.getElementById("whQty").value);
-    if(!name || !number || isNaN(qty)) return;
-
-    warehouse.push({name,number,qty});
-    document.getElementById("whName").value="";
-    document.getElementById("whNumber").value="";
-    document.getElementById("whQty").value="";
-    renderWarehouse();
-}
-
-function editWarehouseItem(index, field, value){
-    if(field === 'name'){
-        warehouse[index].name = value;
-    }else if(field === 'number'){
-        warehouse[index].number = value;
-    }else if(field === 'qty'){
-        warehouse[index].qty = parseInt(value) || 0;
+// ---------- MAGAZYN Z BAZĄ DANYCH ----------
+// ---------- ŁADOWANIE MAGAZynu Z BAZy ----------
+async function renderWarehouse(){
+    const {data,error}=await supabaseClient
+        .from("warehouse")
+        .select("*")
+        .order("created_at", {ascending: false});
+    
+    if(error){ 
+        console.log(error); 
+        return;
     }
-    renderWarehouse();
-}
-
-function changeWarehouseQty(index, delta){
-    const newQty = (warehouse[index].qty || 0) + delta;
-    warehouse[index].qty = newQty < 0 ? 0 : newQty;
-    renderWarehouse();
-}
-
-function removeWarehouse(index){
-    warehouse.splice(index,1);
-    renderWarehouse();
-}
-
-function renderWarehouse(){
+    
+    warehouse = data || [];
     const list=document.getElementById("warehouseList");
     list.innerHTML="";
+    
     warehouse.forEach((p,i)=>{
         const li=document.createElement("li");
         li.innerHTML = `
@@ -624,6 +602,90 @@ function renderWarehouse(){
         `;
         list.appendChild(li);
     });
+}
+
+// ---------- ZAPIS DO BAZy ----------
+async function addWarehouse(){
+    const name=document.getElementById("whName").value;
+    const number=document.getElementById("whNumber").value;
+    const qty=parseInt(document.getElementById("whQty").value);
+    
+    if(!name || !number || isNaN(qty)) return;
+
+    const {error}=await supabaseClient
+        .from("warehouse")
+        .insert([{ name, number, qty }]);
+    
+    if(error){
+        console.log(error);
+        alert("Błąd zapisu do magazynu");
+        return;
+    }
+
+    document.getElementById("whName").value="";
+    document.getElementById("whNumber").value="";
+    document.getElementById("whQty").value="";
+    renderWarehouse();  // Odśwież listę
+    alert("Dodano do magazynu");
+}
+
+// ---------- UPDATE W BAZy ----------
+async function editWarehouseItem(index, field, value){
+    if(warehouse[index]){
+        if(field === 'name'){
+            warehouse[index].name = value;
+        }else if(field === 'number'){
+            warehouse[index].number = value;
+        }else if(field === 'qty'){
+            warehouse[index].qty = parseInt(value) || 0;
+        }
+        
+        const {error} = await supabaseClient
+            .from("warehouse")
+            .update({ 
+                name: warehouse[index].name,
+                number: warehouse[index].number,
+                qty: warehouse[index].qty 
+            })
+            .eq("id", warehouse[index].id);
+        
+        if(error) console.log(error);
+        renderWarehouse();
+    }
+}
+
+// ---------- ZMIANA ILOŚCI ----------
+async function changeWarehouseQty(index, delta){
+    if(warehouse[index]){
+        const newQty = Math.max(0, (warehouse[index].qty || 0) + delta);
+        warehouse[index].qty = newQty;
+        
+        const {error} = await supabaseClient
+            .from("warehouse")
+            .update({ qty: newQty })
+            .eq("id", warehouse[index].id);
+        
+        if(error) console.log(error);
+        renderWarehouse();
+    }
+}
+
+// ---------- USUŃ Z BAZy ----------
+async function removeWarehouse(index){
+    if(warehouse[index]){
+        const {error} = await supabaseClient
+            .from("warehouse")
+            .delete()
+            .eq("id", warehouse[index].id);
+        
+        if(error){
+            console.log(error);
+            alert("Błąd usuwania");
+            return;
+        }
+    }
+    warehouse.splice(index,1);
+    renderWarehouse();
 }
 
 // ---------- PDF ----------
