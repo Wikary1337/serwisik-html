@@ -1,267 +1,447 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serwis Naprawczy PRO v3.0 - KOMPLETNY</title>
-    <style>
-        /* Poprzedni CSS + DODATKOWE */
-        .warehouse-item, .history-item { display: flex; justify-content: space-between; align-items: center; }
-        .search-box { width: 100%; margin-bottom: 20px; }
-        .empty-state { text-align: center; color: #94a3b8; font-style: italic; padding: 40px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- HEADER + TABS -->
-        <div class="header">
-            <h1>🛠️ Serwis Naprawczy PRO v3.0</h1>
-            <p id="orderNum">Numer zlecenia: <strong>SRV-2026-12345</strong></p>
-        </div>
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('order')">📋 Zlecenie</button>
-            <button class="tab-btn" onclick="showTab('history')">📊 Historia (<span id="historyCount">0</span>)</button>
-            <button class="tab-btn" onclick="showTab('warehouse')">📦 Magazyn (<span id="warehouseCount">0</span>)</button>
-        </div>
+export default function RepairServiceApp(){
 
-        <!-- ZLECENIE (bez zmian z poprzedniego) -->
-        <div id="order-tab" class="tab-content active">
-            <!-- ... WSZYSTKO Z POPRZEDNIEGO KODU - STAWKI, KLIENT, PRACA, CZĘŚCI, DOJAZD, PODSUMOWANIE ... -->
-            <!-- Wklej sekcję zlecenia z poprzedniego kodu -->
-        </div>
+/* ---------------- TABS ---------------- */
+const [tab,setTab]=useState("order");
 
-        <!-- HISTORIA ZLECENIE -->
-        <div id="history-tab" class="tab-content">
-            <div class="card">
-                <h3>📊 Historia zleceń</h3>
-                <div class="input-group">
-                    <input type="text" id="historySearch" class="search-box" placeholder="🔍 Szukaj po kliencie, telefonie, numerze..." onkeyup="filterHistory()">
-                </div>
-                <div id="historyList" class="list-container">
-                    <div class="empty-state">Brak zapisanych zleceń. Zapisz pierwsze z zakładki "Zlecenie"!</div>
-                </div>
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="btn btn-secondary" onclick="showTab('order')">➕ Nowe zlecenie</button>
-                </div>
-            </div>
-        </div>
+/* ---------------- CLIENT DATA ---------------- */
+const [clientName,setClientName]=useState("");
+const [clientPhone,setClientPhone]=useState("");
+const [deviceName,setDeviceName]=useState("");
 
-        <!-- MAGAZYN -->
-        <div id="warehouse-tab" class="tab-content">
-            <div class="card">
-                <h3>📦 Magazyn części</h3>
-                <div class="form-grid" style="grid-template-columns: 2fr 1fr 1fr auto; gap: 15px;">
-                    <div class="input-group">
-                        <label>Nazwa części</label>
-                        <input type="text" id="whName" placeholder="Bateria litowa">
-                    </div>
-                    <div class="input-group">
-                        <label>Nr katalogowy</label>
-                        <input type="text" id="whNumber" placeholder="BAT-001">
-                    </div>
-                    <div class="input-group">
-                        <label>Ilość (szt.)</label>
-                        <input type="number" id="whQty" value="1" min="1">
-                    </div>
-                    <button class="btn btn-primary" onclick="addWarehouseItem()">➕ Dodaj do magazynu</button>
-                </div>
-                <div id="warehouseList" class="list-container">
-                    <div class="empty-state">Magazyn pusty. Dodaj pierwszą część!</div>
-                </div>
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="btn btn-secondary" onclick="showTab('order')">⬅️ Powrót do zlecenia</button>
-                </div>
-            </div>
-        </div>
-    </div>
+/* ---------------- ORDER NUMBER ---------------- */
+const generateOrderNumber=()=>`SRV-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`;
+const [orderNumber,setOrderNumber]=useState(generateOrderNumber());
 
-    <script>
-        // === GLOBALNE DANE ===
-        let workDays = [];
-        let parts = [];
-        let warehouseItems = JSON.parse(localStorage.getItem('warehouse') || '[]');
-        let savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-        let orderNumber = 'SRV-2026-' + Math.floor(Math.random() * 90000 + 10000);
+/* ---------------- EDIT MODE ---------------- */
+const [editingId,setEditingId]=useState(null);
 
-        // === INICJALIZACJA ===
-        window.onload = function() {
-            document.getElementById('orderNum').innerHTML = 'Numer zlecenia: <strong>' + orderNumber + '</strong>';
-            renderWarehouse();
-            renderHistory();
-            updateCalculations();
-        };
+/* ---------------- PHOTOS ---------------- */
+const [photos,setPhotos]=useState([]);
 
-        // === FUNKCJE ZLECENIA (z poprzedniego kodu) ===
-        // calcDayCost, calcPartTotal, calcTravelCost, updateCalculations, addWorkDay, addPart, removeWorkDay, removePart
+/* ---------------- LABOR ---------------- */
+const [laborRate,setLaborRate]=useState(100);
+const [dailyHours,setDailyHours]=useState([]);
+const [hoursInput,setHoursInput]=useState("");
+const [workDate,setWorkDate]=useState("");
 
-        // === MAGAZYN ===
-        function addWarehouseItem() {
-            const name = document.getElementById('whName').value.trim();
-            const number = document.getElementById('whNumber').value.trim();
-            const qty = parseInt(document.getElementById('whQty').value) || 0;
+/* ---------------- PARTS ---------------- */
+const [parts,setParts]=useState([]);
+const [partName,setPartName]=useState("");
+const [partPrice,setPartPrice]=useState("");
+const [partQty,setPartQty]=useState(1);
+const [useWarehouse,setUseWarehouse]=useState(false);
 
-            if (!name || qty <= 0) {
-                alert('Podaj nazwę i ilość!');
-                return;
-            }
+/* ---------------- TASKS ---------------- */
+const [tasks,setTasks]=useState([]);
+const [taskName,setTaskName]=useState("");
 
-            warehouseItems.push({ name, number, qty, id: Date.now() });
-            localStorage.setItem('warehouse', JSON.stringify(warehouseItems));
-            renderWarehouse();
+/* ---------------- TRAVEL ---------------- */
+const [kmRate,setKmRate]=useState(1);
+const [km,setKm]=useState("");
 
-            // Reset form
-            document.getElementById('whName').value = '';
-            document.getElementById('whNumber').value = '';
-            document.getElementById('whQty').value = '1';
-        }
+/* ---------------- HISTORY ---------------- */
+const [orders,setOrders]=useState([]);
+const [search,setSearch]=useState("");
 
-        function renderWarehouse() {
-            const container = document.getElementById('warehouseList');
-            const countEl = document.getElementById('warehouseCount');
-            
-            if (warehouseItems.length === 0) {
-                container.innerHTML = '<div class="empty-state">Magazyn pusty. Dodaj pierwszą część!</div>';
-                countEl.textContent = '0';
-                return;
-            }
+/* ---------------- WAREHOUSE ---------------- */
+const [warehouse,setWarehouse]=useState([]);
+const [whName,setWhName]=useState("");
+const [whNumber,setWhNumber]=useState("");
+const [whQty,setWhQty]=useState("");
 
-            container.innerHTML = '';
-            warehouseItems.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'list-item warehouse-item added-item';
-                div.innerHTML = `
-                    <div>
-                        <strong>${item.name}</strong> 
-                        <span style="color: #64748b;">#${item.number || 'brak'}</span>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="color: #10b981; font-weight: bold; font-size: 1.1rem;">${item.qty} szt.</span>
-                        <button class="btn btn-danger" onclick="removeWarehouseItem(${index})" style="margin-left: 10px;">🗑️</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            countEl.textContent = warehouseItems.length;
-        }
+/* ---------------- LOAD STORAGE ---------------- */
+useEffect(()=>{
+const savedOrders=localStorage.getItem("service_orders");
+if(savedOrders)setOrders(JSON.parse(savedOrders));
 
-        function removeWarehouseItem(index) {
-            if (confirm('Usunąć część z magazynu?')) {
-                warehouseItems.splice(index, 1);
-                localStorage.setItem('warehouse', JSON.stringify(warehouseItems));
-                renderWarehouse();
-            }
-        }
+const savedWarehouse=localStorage.getItem("warehouse_parts");
+if(savedWarehouse)setWarehouse(JSON.parse(savedWarehouse));
+},[]);
 
-        // === HISTORIA ===
-        function saveOrder() {
-            const total = parseFloat(document.getElementById('grandTotal').textContent) || 0;
-            const order = {
-                id: Date.now(),
-                orderNumber,
-                clientName: document.getElementById('clientName').value,
-                clientPhone: document.getElementById('clientPhone').value,
-                deviceName: document.getElementById('deviceName').value,
-                laborRate: document.getElementById('laborRate').value,
-                kmRate: document.getElementById('kmRate').value,
-                workDays,
-                parts,
-                km: document.getElementById('km').value,
-                total: total.toFixed(2),
-                date: new Date().toLocaleDateString('pl-PL')
-            };
+/* ---------------- SAVE STORAGE ---------------- */
+useEffect(()=>{
+localStorage.setItem("service_orders",JSON.stringify(orders));
+},[orders]);
 
-            savedOrders.unshift(order); // Dodaj na początek
-            localStorage.setItem('orders', JSON.stringify(savedOrders));
-            
-            // Reset zlecenia
-            workDays = [];
-            parts = [];
-            orderNumber = 'SRV-2026-' + Math.floor(Math.random() * 90000 + 10000);
-            document.getElementById('orderNum').innerHTML = 'Numer zlecenia: <strong>' + orderNumber + '</strong>';
-            updateCalculations();
-            renderWorkDays();
-            renderParts();
+useEffect(()=>{
+localStorage.setItem("warehouse_parts",JSON.stringify(warehouse));
+},[warehouse]);
 
-            alert('✅ Zlecenie zapisane! Przejdź do Historii.');
-            renderHistory();
-        }
+/* ---------------- PHOTO UPLOAD ---------------- */
+const addPhoto=(e)=>{
+const files=[...e.target.files];
+setPhotos([...photos,...files.map(f=>URL.createObjectURL(f))]);
+};
 
-        function renderHistory() {
-            const container = document.getElementById('historyList');
-            const countEl = document.getElementById('historyCount');
-            
-            if (savedOrders.length === 0) {
-                container.innerHTML = '<div class="empty-state">Brak zapisanych zleceń. Zapisz pierwsze z zakładki "Zlecenie"!</div>';
-                countEl.textContent = '0';
-                return;
-            }
+/* ---------------- LABOR FUNCTIONS ---------------- */
+const addHours=()=>{
+if(!hoursInput||!workDate)return;
+setDailyHours([...dailyHours,{date:workDate,hours:Number(hoursInput)}]);
+setHoursInput("");
+setWorkDate("");
+};
 
-            container.innerHTML = '';
-            savedOrders.forEach((order, index) => {
-                const div = document.createElement('div');
-                div.className = 'list-item history-item';
-                div.innerHTML = `
-                    <div>
-                        <strong style="font-size: 1.2rem;">${order.orderNumber}</strong><br>
-                        <span>${order.clientName}</span> • ${order.clientPhone}<br>
-                        <small>${order.deviceName}</small>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="color: #059669; font-size: 1.5rem; font-weight: bold;">${order.total} zł</div>
-                        <div style="font-size: 0.8rem; color: #64748b;">${order.date}</div>
-                        <button class="btn btn-primary" onclick="loadOrder(${index})" style="margin-top: 10px;">📋 Edytuj</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            countEl.textContent = savedOrders.length;
-        }
+/* ---------------- PARTS FUNCTIONS ---------------- */
+const addPart=()=>{
+if(!partName||!partPrice)return;
 
-        function filterHistory() {
-            const search = document.getElementById('historySearch').value.toLowerCase();
-            const items = document.querySelectorAll('#historyList .list-item');
-            let visible = 0;
+if(useWarehouse){
+setWarehouse(prev=>prev.map(p=>{
+if(p.name===partName){
+return {...p,qty:p.qty-partQty};
+}
+return p;
+}));
+}
 
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(search)) {
-                    item.style.display = 'flex';
-                    visible++;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
+setParts([...parts,{name:partName,price:Number(partPrice),qty:Number(partQty),fromWarehouse:useWarehouse}]);
 
-        function loadOrder(index) {
-            const order = savedOrders[index];
-            document.getElementById('clientName').value = order.clientName;
-            document.getElementById('clientPhone').value = order.clientPhone;
-            document.getElementById('deviceName').value = order.deviceName;
-            document.getElementById('laborRate').value = order.laborRate;
-            document.getElementById('kmRate').value = order.kmRate;
-            document.getElementById('km').value = order.km;
-            
-            workDays = order.workDays || [];
-            parts = order.parts || [];
-            orderNumber = order.orderNumber;
-            
-            renderWorkDays();
-            renderParts();
-            updateCalculations();
-            
-            showTab('order');
-            alert('Zlecenie załadowane do edycji!');
-        }
+setPartName("");
+setPartPrice("");
+setPartQty(1);
+setUseWarehouse(false);
+};
 
-        // === TABY ===
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
-        }
-    </script>
-</body>
-</html>
+/* ---------------- TASKS ---------------- */
+const addTask=()=>{
+if(!taskName)return;
+setTasks([...tasks,taskName]);
+setTaskName("");
+};
+
+/* ---------------- WAREHOUSE ---------------- */
+const addWarehouse=()=>{
+if(!whName)return;
+setWarehouse([...warehouse,{name:whName,number:whNumber,qty:Number(whQty)}]);
+setWhName("");
+setWhNumber("");
+setWhQty("");
+};
+
+/* ---------------- CALCULATIONS ---------------- */
+const totalHours=dailyHours.reduce((sum,d)=>sum+d.hours,0);
+const laborCost=totalHours*laborRate;
+const partsCost=parts.reduce((sum,p)=>sum+p.price*p.qty,0);
+const travelCost=Number(km||0)*kmRate;
+const total=laborCost+partsCost+travelCost;
+
+/* ---------------- SAVE ORDER ---------------- */
+const saveOrder=()=>{
+const order={
+id:editingId || Date.now(),
+orderNumber,
+clientName,
+clientPhone,
+deviceName,
+parts,
+tasks,
+km,
+kmRate,
+dailyHours,
+total
+};
+
+if(editingId){
+setOrders(orders.map(o=>o.id===editingId?order:o));
+setEditingId(null);
+}else{
+setOrders([order,...orders]);
+}
+
+setOrderNumber(generateOrderNumber());
+};
+
+/* ---------------- EDIT ORDER ---------------- */
+const editOrder=(o)=>{
+setClientName(o.clientName);
+setClientPhone(o.clientPhone);
+setDeviceName(o.deviceName);
+setParts(o.parts);
+setTasks(o.tasks);
+setKm(o.km);
+setKmRate(o.kmRate);
+setDailyHours(o.dailyHours);
+setEditingId(o.id);
+setTab("order");
+};
+
+/* ---------------- PDF ---------------- */
+const generatePDF=()=>{
+const doc=new jsPDF();
+let y=10;
+
+doc.text("PROTOKÓŁ NAPRAWY",10,y);
+y+=10;
+
+doc.text("Numer zlecenia: "+orderNumber,10,y);
+y+=8;
+
+doc.text("Klient: "+clientName,10,y);
+y+=8;
+
+doc.text("Telefon: "+clientPhone,10,y);
+y+=8;
+
+doc.text("Urządzenie: "+deviceName,10,y);
+y+=10;
+
+tasks.forEach(t=>{doc.text("- "+t,10,y);y+=6});
+
+parts.forEach(p=>{doc.text(`${p.name} ${p.qty} x ${p.price} zł`,10,y);y+=6});
+
+
+doc.text("Koszt pracy: "+laborCost+" zł",10,y+=10);
+
+doc.text("Koszt części: "+partsCost+" zł",10,y+=8);
+
+doc.text("Koszt dojazdu: "+travelCost+" zł",10,y+=8);
+
+doc.text("SUMA: "+total+" zł",10,y+=8);
+
+doc.save(`zlecenie_${orderNumber}.pdf`);
+};
+
+/* ---------------- HISTORY VIEW ---------------- */
+if(tab==="history"){
+
+const filtered=orders.filter(o=>
+(o.clientName||"").toLowerCase().includes(search.toLowerCase())||
+(o.clientPhone||"").includes(search)||
+(o.orderNumber||"").includes(search)
+);
+
+return(
+<div className="p-6 max-w-4xl mx-auto grid gap-4">
+
+<h1 className="text-2xl font-bold">Historia zleceń</h1>
+
+<Input
+placeholder="Wyszukaj klienta"
+value={search}
+onChange={e=>setSearch(e.target.value)}
+/>
+
+{filtered.map(o=>(
+<Card key={o.id}>
+<CardContent className="p-3">
+<p>Numer: {o.orderNumber}</p>
+<p>Klient: {o.clientName}</p>
+<p>Telefon: {o.clientPhone}</p>
+<p>Urządzenie: {o.deviceName}</p>
+<p>Koszt: {o.total} zł</p>
+<Button onClick={()=>editOrder(o)}>Edytuj</Button>
+</CardContent>
+</Card>
+))}
+
+<Button onClick={()=>setTab("order")}>Powrót</Button>
+
+</div>
+);
+}
+
+/* ---------------- WAREHOUSE VIEW ---------------- */
+if(tab==="warehouse"){
+return(
+<div className="p-6 max-w-4xl mx-auto grid gap-4">
+
+<h1 className="text-2xl font-bold">Magazyn części</h1>
+
+<div className="flex gap-2">
+<Input placeholder="Nazwa części" value={whName} onChange={e=>setWhName(e.target.value)}/>
+<Input placeholder="Numer części" value={whNumber} onChange={e=>setWhNumber(e.target.value)}/>
+<Input type="number" placeholder="Ilość" value={whQty} onChange={e=>setWhQty(e.target.value)}/>
+<Button onClick={addWarehouse}>Dodaj</Button>
+</div>
+
+<ul className="grid gap-1">
+{warehouse.map((p,i)=>(
+<li key={i}>{p.name} | nr:{p.number} | ilość:{p.qty}</li>
+))}
+</ul>
+
+<Button onClick={()=>setTab("order")}>Powrót</Button>
+
+</div>
+);
+}
+
+/* ---------------- MAIN ORDER VIEW ---------------- */
+return(
+<div className="p-6 grid gap-6 max-w-5xl mx-auto">
+
+<div className="flex gap-2">
+<Button onClick={()=>setTab("order")}>Zlecenie</Button>
+<Button onClick={()=>setTab("history")}>Historia</Button>
+<Button onClick={()=>setTab("warehouse")}>Magazyn</Button>
+</div>
+
+<Card>
+<CardContent className="p-4 grid gap-3">
+<h2 className="font-bold">Dane klienta</h2>
+
+<Input
+placeholder="Imię i nazwisko"
+value={clientName}
+onChange={e=>setClientName(e.target.value)}
+/>
+
+<Input
+placeholder="Numer telefonu"
+value={clientPhone}
+onChange={e=>setClientPhone(e.target.value)}
+/>
+
+<Input
+placeholder="Nazwa urządzenia / maszyny oddanej do serwisu"
+value={deviceName}
+onChange={e=>setDeviceName(e.target.value)}
+/>
+
+<p className="text-sm">Numer zlecenia: {orderNumber}</p>
+
+</CardContent>
+</Card>
+
+<Card>
+<CardContent className="p-4 grid gap-3">
+<h2 className="font-bold">Czas pracy</h2>
+
+<Input
+ type="number"
+ placeholder="Stawka godzinowa"
+ value={laborRate}
+ onChange={e=>setLaborRate(Number(e.target.value))}
+/>
+
+<div className="flex gap-2">
+
+<Input
+ type="date"
+ value={workDate}
+ onChange={e=>setWorkDate(e.target.value)}
+/>
+
+<Input
+ type="number"
+ placeholder="Godziny"
+ value={hoursInput}
+ onChange={e=>setHoursInput(e.target.value)}
+/>
+
+<Button onClick={addHours}>Dodaj</Button>
+
+</div>
+
+<ul className="text-sm">
+{dailyHours.map((d,i)=>(
+<li key={i}>{d.date} — {d.hours} h</li>
+))}
+</ul>
+
+<p>Suma godzin: {totalHours} h</p>
+<p>Koszt pracy: {laborCost} zł</p>
+
+</CardContent>
+</Card>
+
+<Card>
+<CardContent className="p-4 grid gap-3">
+<h2 className="font-bold">Części użyte do naprawy</h2>
+
+{useWarehouse && (
+<select
+className="border p-2 rounded"
+value={partName}
+onChange={e=>setPartName(e.target.value)}
+>
+<option value="">Wybierz część z magazynu</option>
+{warehouse.map((p,i)=>(
+<option key={i} value={p.name}>{p.name} (stan: {p.qty})</option>
+))}
+</select>
+)}
+
+{!useWarehouse && (
+<Input
+placeholder="Nazwa części"
+value={partName}
+onChange={e=>setPartName(e.target.value)}
+/>
+)}
+
+<Input
+ type="number"
+ placeholder="Cena"
+ value={partPrice}
+ onChange={e=>setPartPrice(e.target.value)}
+/>
+
+<Input
+ type="number"
+ placeholder="Ilość"
+ value={partQty}
+ onChange={e=>setPartQty(e.target.value)}
+/>
+
+<label className="text-sm flex items-center gap-1">
+<input type="checkbox" checked={useWarehouse} onChange={e=>setUseWarehouse(e.target.checked)}/>
+Z magazynu
+</label>
+
+<Button onClick={addPart}>Dodaj</Button>
+
+<p>Suma części: {partsCost} zł</p>
+
+</CardContent>
+</Card>
+
+<Card>
+<CardContent className="p-4 grid gap-3">
+<h2 className="font-bold">Koszt dojazdu</h2>
+
+<Input
+ type="number"
+ placeholder="Kilometry"
+ value={km}
+ onChange={e=>setKm(e.target.value)}
+/>
+
+<Input
+ type="number"
+ placeholder="Stawka za km"
+ value={kmRate}
+ onChange={e=>setKmRate(Number(e.target.value))}
+/>
+
+<p>Koszt dojazdu: {travelCost} zł</p>
+
+</CardContent>
+</Card>
+
+<Card>
+<CardContent className="p-4 grid gap-2">
+<h2 className="font-bold">Podsumowanie</h2>
+<p>Koszt pracy: {laborCost} zł</p>
+<p>Koszt części: {partsCost} zł</p>
+<p>Koszt dojazdu: {travelCost} zł</p>
+<p className="font-bold">Łączna cena: {total} zł</p>
+
+<div className="flex gap-2">
+<Button onClick={saveOrder}>{editingId?"Zapisz zmiany":"Zapisz zlecenie"}</Button>
+<Button onClick={generatePDF}>Generuj PDF</Button>
+</div>
+
+</CardContent>
+</Card>
+
+</div>
+);
+
+}
