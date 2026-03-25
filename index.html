@@ -118,8 +118,6 @@ ul{
 li{
     margin-bottom:6px;
 }
-
-/* sekcja podsumowania – przyciski w jednej linii na dużych ekranach */
 .summary-actions{
     display:flex;
     flex-wrap:wrap;
@@ -129,8 +127,6 @@ li{
 .summary-actions button{
     flex:1 1 180px;
 }
-
-/* responsywność na mobile */
 @media (max-width:600px){
     body{
         padding:10px;
@@ -244,8 +240,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[];
 let orderNumber = generateOrderNumber();
-let currentOrderId = null;           // ID zlecenia w bazie (do update)
-let currentOrderNumber = null;       // numer zlecenia z bazy (do PDF/wyświetlania)
+let currentOrderId = null;
+let currentOrderNumber = null;
 
 document.getElementById("orderNumber").innerText = orderNumber;
 
@@ -277,7 +273,7 @@ function setEditMode(isEdit){
     }
 }
 
-// ----------------- FUNKCJE -----------------
+// ----------------- FUNKCJE OGÓLNE -----------------
 function showTab(tab){
     document.getElementById("order").style.display="none";
     document.getElementById("history").style.display="none";
@@ -423,7 +419,7 @@ async function saveOrder(){
         total:total
     };
 
-    const {error}=await supabaseClient.from("orders").insert([order]); // [web:36]
+    const {error}=await supabaseClient.from("orders").insert([order]); // [web:23]
 
     if(error){
         console.log(error);
@@ -461,7 +457,7 @@ async function updateOrder(){
     const {error} = await supabaseClient
         .from("orders")
         .update(updatedOrder)
-        .eq("id", currentOrderId); // jeśli PK ma inną nazwę, zmień tutaj [web:38]
+        .eq("id", currentOrderId); // [web:36]
 
     if(error){
         console.log(error);
@@ -492,7 +488,7 @@ async function renderOrders(){
     const {data,error}=await supabaseClient
         .from("orders")
         .select("*")
-        .order("id",{ascending:false}); // zmień "id" jeśli inna kolumna [web:51]
+        .order("id",{ascending:false}); // [web:51]
 
     if(error){console.log(error); return;}
     orders=data || [];
@@ -533,27 +529,22 @@ function showOrder(num){
     `;
 }
 
-// ZAŁADOWANIE ZLECENIA DO FORMULARZA W TRYBIE EDYCJI
 function editOrder(num){
     const o=orders.find(x=>x.order_number===num);
     if(!o) return;
 
-    // przełącz na zakładkę zlecenie
     showTab('order');
 
     currentOrderId = o.id;
     currentOrderNumber = o.order_number;
 
-    // dane klienta
     document.getElementById("clientName").value = o.client_name || "";
     document.getElementById("clientPhone").value = o.client_phone || "";
     document.getElementById("deviceName").value = o.device_name || "";
 
-    // numer zlecenia (z bazy, bez generowania nowego)
     orderNumber = o.order_number;
     document.getElementById("orderNumber").innerText = orderNumber;
 
-    // godziny / części / dojazd
     dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
     parts = Array.isArray(o.parts) ? [...o.parts] : [];
     travels = Array.isArray(o.travels) ? [...o.travels] : [];
@@ -566,23 +557,125 @@ function editOrder(num){
     setEditMode(true);
 }
 
-// ---------- MAGAZYN Z BAZĄ DANYCH ----------
-// ---------- ŁADOWANIE MAGAZynu Z BAZy ----------
-async function renderWarehouse(){
-    const {data,error}=await supabaseClient
+// ---------- MAGAZYN (Supabase) ----------
+
+// wczytanie magazynu przy starcie
+async function loadWarehouse(){
+    const { data, error } = await supabaseClient
         .from("warehouse")
         .select("*")
-        .order("created_at", {ascending: false});
-    
-    if(error){ 
-        console.log(error); 
+        .order("id", { ascending: true }); // [web:51]
+
+    if(error){
+        console.log("Warehouse load error", error);
         return;
     }
-    
     warehouse = data || [];
+    renderWarehouse();
+}
+
+// dodanie nowej pozycji
+async function addWarehouse(){
+    const name=document.getElementById("whName").value;
+    const number=document.getElementById("whNumber").value;
+    const qty=parseInt(document.getElementById("whQty").value);
+
+    if(!name || !number || isNaN(qty)) return;
+
+    const { data, error } = await supabaseClient
+        .from("warehouse")
+        .insert([{ name, number, qty }])
+        .select()
+        .single(); // [web:1][web:2][web:66]
+
+    if(error){
+        console.log("Warehouse insert error", error);
+        alert("Błąd zapisu magazynu");
+        return;
+    }
+
+    warehouse.push(data);
+    document.getElementById("whName").value="";
+    document.getElementById("whNumber").value="";
+    document.getElementById("whQty").value="";
+    renderWarehouse();
+}
+
+// edycja pól name/number/qty
+async function editWarehouseItem(index, field, value){
+    const item = warehouse[index];
+    if(!item) return;
+
+    let newData = {};
+    if(field === 'name'){
+        newData.name = value;
+    }else if(field === 'number'){
+        newData.number = value;
+    }else if(field === 'qty'){
+        newData.qty = parseInt(value) || 0;
+    }
+
+    const { error } = await supabaseClient
+        .from("warehouse")
+        .update(newData)
+        .eq("id", item.id); // [web:36]
+
+    if(error){
+        console.log("Warehouse update error", error);
+        alert("Błąd aktualizacji magazynu");
+        return;
+    }
+
+    // lokalnie też aktualizujemy
+    warehouse[index] = { ...item, ...newData };
+    renderWarehouse();
+}
+
+// zmiana ilości +/- 1
+async function changeWarehouseQty(index, delta){
+    const item = warehouse[index];
+    if(!item) return;
+
+    const newQty = Math.max(0, (item.qty || 0) + delta);
+
+    const { error } = await supabaseClient
+        .from("warehouse")
+        .update({ qty:newQty })
+        .eq("id", item.id); // [web:36]
+
+    if(error){
+        console.log("Warehouse qty update error", error);
+        alert("Błąd zmiany ilości");
+        return;
+    }
+
+    warehouse[index].qty = newQty;
+    renderWarehouse();
+}
+
+// usunięcie pozycji
+async function removeWarehouse(index){
+    const item = warehouse[index];
+    if(!item) return;
+
+    const { error } = await supabaseClient
+        .from("warehouse")
+        .delete()
+        .eq("id", item.id); // [web:63][web:67]
+
+    if(error){
+        console.log("Warehouse delete error", error);
+        alert("Błąd usuwania z magazynu");
+        return;
+    }
+
+    warehouse.splice(index,1);
+    renderWarehouse();
+}
+
+function renderWarehouse(){
     const list=document.getElementById("warehouseList");
     list.innerHTML="";
-    
     warehouse.forEach((p,i)=>{
         const li=document.createElement("li");
         li.innerHTML = `
@@ -604,102 +697,6 @@ async function renderWarehouse(){
     });
 }
 
-// ---------- ZAPIS DO BAZy ----------
-async function addWarehouse(){
-    const name=document.getElementById("whName").value;
-    const number=document.getElementById("whNumber").value;
-    const qty=parseInt(document.getElementById("whQty").value);
-    
-    console.log("Dane:", {name, number, qty}); // DEBUG
-    
-    if(!name || !number || isNaN(qty)) {
-        alert("Wypełnij wszystkie pola!");
-        return;
-    }
-
-    try {
-        const {data, error} = await supabaseClient
-            .from("warehouse")
-            .insert([{ name, number, qty }]);
-        
-        console.log("RESPONSE:", {data, error}); // DEBUG
-        
-        if(error){
-            console.error("FULL ERROR:", error);
-            alert("BŁĄD: " + error.message);
-            return;
-        }
-        
-        document.getElementById("whName").value="";
-        document.getElementById("whNumber").value="";
-        document.getElementById("whQty").value="";
-        renderWarehouse();
-        alert("✅ Dodano do magazynu");
-        
-    } catch(e) {
-        console.error("EXCEPTION:", e);
-        alert("Wyjątek: " + e.message);
-    }
-}
-// ---------- UPDATE W BAZy ----------
-async function editWarehouseItem(index, field, value){
-    if(warehouse[index]){
-        if(field === 'name'){
-            warehouse[index].name = value;
-        }else if(field === 'number'){
-            warehouse[index].number = value;
-        }else if(field === 'qty'){
-            warehouse[index].qty = parseInt(value) || 0;
-        }
-        
-        const {error} = await supabaseClient
-            .from("warehouse")
-            .update({ 
-                name: warehouse[index].name,
-                number: warehouse[index].number,
-                qty: warehouse[index].qty 
-            })
-            .eq("id", warehouse[index].id);
-        
-        if(error) console.log(error);
-        renderWarehouse();
-    }
-}
-
-// ---------- ZMIANA ILOŚCI ----------
-async function changeWarehouseQty(index, delta){
-    if(warehouse[index]){
-        const newQty = Math.max(0, (warehouse[index].qty || 0) + delta);
-        warehouse[index].qty = newQty;
-        
-        const {error} = await supabaseClient
-            .from("warehouse")
-            .update({ qty: newQty })
-            .eq("id", warehouse[index].id);
-        
-        if(error) console.log(error);
-        renderWarehouse();
-    }
-}
-
-// ---------- USUŃ Z BAZy ----------
-async function removeWarehouse(index){
-    if(warehouse[index]){
-        const {error} = await supabaseClient
-            .from("warehouse")
-            .delete()
-            .eq("id", warehouse[index].id);
-        
-        if(error){
-            console.log(error);
-            alert("Błąd usuwania");
-            return;
-        }
-    }
-    warehouse.splice(index,1);
-    renderWarehouse();
-}
-
 // ---------- PDF ----------
 function generatePDF(){
     const {jsPDF}=window.jspdf;
@@ -713,7 +710,7 @@ function generatePDF(){
 
 // ---------- START ----------
 renderOrders();
-renderWarehouse();
+loadWarehouse();
 
 </script>
 </body>
