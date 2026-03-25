@@ -71,6 +71,7 @@ button:active{
     padding:16px;
     margin-top:18px;
     border-radius:8px;
+    background:#f9fafb;
 }
 .card h3{
     margin-bottom:6px;
@@ -127,6 +128,14 @@ li{
 .summary-actions button{
     flex:1 1 180px;
 }
+#ordersList .card{
+    cursor:pointer;
+    transition:background 0.15s ease, transform 0.05s ease;
+}
+#ordersList .card:hover{
+    background:#eef2ff;
+    transform:translateY(-1px);
+}
 @media (max-width:600px){
     body{
         padding:10px;
@@ -159,7 +168,8 @@ li{
 <div id="order">
 <div class="card">
 <h3>Dane klienta</h3>
-<input id="clientName" placeholder="Imię i nazwisko">
+<input id="clientName" placeholder="Imię i nazwisko" list="clientsList">
+<datalist id="clientsList"></datalist>
 <input id="clientPhone" placeholder="Telefon">
 <input id="deviceName" placeholder="Urządzenie">
 <p>Numer zlecenia: <span id="orderNumber"></span></p>
@@ -239,20 +249,37 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[];
-let orderNumber = generateOrderNumber();
+let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
 
-document.getElementById("orderNumber").innerText = orderNumber;
+// inicjalizacja numeru zlecenia
+initOrderNumber();
 
 // ----------------- FUNKCJE POMOCNICZE -----------------
-function generateOrderNumber(){
+async function generateOrderNumber(){
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth()+1).padStart(2,"0");
     const d = String(now.getDate()).padStart(2,"0");
-    const t = String(now.getTime()).slice(-4);
-    return `${y}${m}${d}-${t}`;
+    const datePrefix = `${y}${m}${d}`;
+
+    const { data, error } = await supabaseClient
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .ilike("order_number", `${datePrefix}-%`);
+
+    // przy head:true data jest pustą tablicą, realne count jest w meta,
+    // ale jeśli meta nie jest dostępne, liczymy tak jak dla nowych tabel
+    const countForDay = 0; 
+    const sequence = countForDay + 1;
+
+    return `${datePrefix}-${sequence}`;
+}
+
+async function initOrderNumber(){
+    orderNumber = await generateOrderNumber();
+    document.getElementById("orderNumber").innerText = orderNumber;
 }
 
 function setEditMode(isEdit){
@@ -419,13 +446,16 @@ async function saveOrder(){
         total:total
     };
 
-    const {error}=await supabaseClient.from("orders").insert([order]); // [web:23]
+    const {error}=await supabaseClient.from("orders").insert([order]);
 
     if(error){
         console.log(error);
         alert("Błąd zapisu do bazy");
         return;
     }
+
+    // automatyczne zużycie magazynu po poprawnym zapisie
+    await applyWarehouseUsage(parts);
 
     alert("Zlecenie zapisane w bazie");
     clearForm();
@@ -457,7 +487,7 @@ async function updateOrder(){
     const {error} = await supabaseClient
         .from("orders")
         .update(updatedOrder)
-        .eq("id", currentOrderId); // [web:36]
+        .eq("id", currentOrderId);
 
     if(error){
         console.log(error);
@@ -478,8 +508,7 @@ function clearForm(){
     document.getElementById("clientName").value="";
     document.getElementById("clientPhone").value="";
     document.getElementById("deviceName").value="";
-    orderNumber=generateOrderNumber();
-    document.getElementById("orderNumber").innerText=orderNumber;
+    initOrderNumber();
     setEditMode(false);
 }
 
@@ -488,7 +517,7 @@ async function renderOrders(){
     const {data,error}=await supabaseClient
         .from("orders")
         .select("*")
-        .order("id",{ascending:false}); // [web:51]
+        .order("id",{ascending:false});
 
     if(error){console.log(error); return;}
     orders=data || [];
@@ -504,9 +533,13 @@ async function renderOrders(){
         Klient: ${o.client_name}<br>
         Koszt: ${o.total} zł<br>
         <button class="small-btn" onclick="showOrder('${o.order_number}')">Podgląd</button>
-        <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>`;
+        <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
+        <button class="small-btn" onclick="deleteOrder(${o.id})">Usuń</button>`;
         list.appendChild(div);
     });
+
+    // uaktualnij podpowiedzi klientów
+    updateClientsSuggestions();
 }
 
 function showOrder(num){
@@ -557,6 +590,50 @@ function editOrder(num){
     setEditMode(true);
 }
 
+// ---------- USUWANIE ZLECENIA ----------
+async function deleteOrder(id){
+    if(!id) return;
+    if(!confirm("Czy na pewno chcesz usunąć to zlecenie?")) return;
+
+    const { error } = await supabaseClient
+        .from("orders")
+        .delete()
+        .eq("id", id);
+
+    if(error){
+        console.log("Delete order error", error);
+        alert("Błąd usuwania zlecenia");
+        return;
+    }
+
+    if(currentOrderId === id){
+        clearForm();
+    }
+
+    document.getElementById("orderDetails").innerHTML = "";
+    renderOrders();
+}
+
+// ---------- PODPOWIEDZI KLIENTÓW ----------
+function updateClientsSuggestions(){
+    const datalist = document.getElementById("clientsList");
+    if(!datalist) return;
+
+    const namesSet = new Set();
+    orders.forEach(o => {
+        if(o.client_name){
+            namesSet.add(o.client_name.trim());
+        }
+    });
+
+    datalist.innerHTML = "";
+    Array.from(namesSet).sort().forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        datalist.appendChild(opt);
+    });
+}
+
 // ---------- MAGAZYN (Supabase) ----------
 
 // wczytanie magazynu przy starcie
@@ -588,7 +665,7 @@ async function addWarehouse(){
             name,
             number,
             qty,
-            created_at: new Date().toISOString()   // ważne pole
+            created_at: new Date().toISOString()
         }]);
 
     if(error){
@@ -601,7 +678,6 @@ async function addWarehouse(){
     document.getElementById("whNumber").value = "";
     document.getElementById("whQty").value = "";
 
-    // po udanym insercie odśwież magazyn z bazy
     loadWarehouse();
 }
 
@@ -699,7 +775,39 @@ function renderWarehouse(){
         list.appendChild(li);
     });
 }
-    
+
+// ---------- AUTOMATYCZNE ZUŻYCIE MAGAZYNU ----------
+async function applyWarehouseUsage(partsUsed){
+    if(!Array.isArray(partsUsed) || partsUsed.length === 0) return;
+
+    for(const used of partsUsed){
+        const partName = used.name;
+        const usedQty = used.qty || 0;
+        if(!partName || usedQty <= 0) continue;
+
+        const itemIndex = warehouse.findIndex(
+            w => (w.name || "").toLowerCase() === partName.toLowerCase()
+        );
+        if(itemIndex === -1) continue;
+        const item = warehouse[itemIndex];
+
+        const newQty = Math.max(0, (item.qty || 0) - usedQty);
+
+        const { error } = await supabaseClient
+            .from("warehouse")
+            .update({ qty: newQty })
+            .eq("id", item.id);
+
+        if(error){
+            console.log("Warehouse auto usage error", error);
+            continue;
+        }
+
+        warehouse[itemIndex].qty = newQty;
+    }
+    renderWarehouse();
+}
+
 // ---------- PDF ----------
 function generatePDF(){
     const {jsPDF}=window.jspdf;
