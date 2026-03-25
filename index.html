@@ -184,7 +184,7 @@ li{
 
 <div class="card">
 <h3>Części</h3>
-<input id="partName" placeholder="Nazwa części" list="partsList">
+<input id="partName" placeholder="Nazwa części" list="partsList" oninput="fillPartPriceFromWarehouse()">
 <datalist id="partsList"></datalist>
 <input id="partPrice" type="number" placeholder="Cena">
 <input id="partQty" type="number" value="1" placeholder="Ilość">
@@ -333,6 +333,20 @@ function fillClientData(){
     if(client){
         document.getElementById("clientPhone").value = client.client_phone || "";
         document.getElementById("deviceName").value = client.device_name || "";
+    }
+}
+
+// ---------- AUTO-CENA CZĘŚCI Z MAGAZYNU ----------
+function fillPartPriceFromWarehouse(){
+    const partInput = document.getElementById("partName").value.trim();
+    if(!partInput) return;
+
+    const item = warehouse.find(w =>
+        (w.name || "").toLowerCase() === partInput.toLowerCase()
+    );
+
+    if(item && typeof item.price === "number"){
+        document.getElementById("partPrice").value = item.price;
     }
 }
 
