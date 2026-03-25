@@ -564,7 +564,7 @@ async function loadWarehouse(){
     const { data, error } = await supabaseClient
         .from("warehouse")
         .select("*")
-        .order("id", { ascending: true }); // [web:51]
+        .order("id", { ascending: true });
 
     if(error){
         console.log("Warehouse load error", error);
@@ -576,9 +576,9 @@ async function loadWarehouse(){
 
 // dodanie nowej pozycji
 async function addWarehouse(){
-    const name=document.getElementById("name").value;
-    const number=document.getElementById("number").value;
-    const qty=parseInt(document.getElementById("qty").value);
+    const name = document.getElementById("whName").value;
+    const number = document.getElementById("whNumber").value;
+    const qty = parseInt(document.getElementById("whQty").value);
 
     if(!name || !number || isNaN(qty)) return;
 
@@ -586,7 +586,7 @@ async function addWarehouse(){
         .from("warehouse")
         .insert([{ name, number, qty }])
         .select()
-        .single(); // [web:1][web:2][web:66]
+        .single();
 
     if(error){
         console.log("Warehouse insert error", error);
@@ -595,9 +595,9 @@ async function addWarehouse(){
     }
 
     warehouse.push(data);
-    document.getElementById("whName").value="";
-    document.getElementById("whNumber").value="";
-    document.getElementById("whQty").value="";
+    document.getElementById("whName").value = "";
+    document.getElementById("whNumber").value = "";
+    document.getElementById("whQty").value = "";
     renderWarehouse();
 }
 
@@ -618,7 +618,7 @@ async function editWarehouseItem(index, field, value){
     const { error } = await supabaseClient
         .from("warehouse")
         .update(newData)
-        .eq("id", item.id); // [web:36]
+        .eq("id", item.id);
 
     if(error){
         console.log("Warehouse update error", error);
@@ -626,7 +626,6 @@ async function editWarehouseItem(index, field, value){
         return;
     }
 
-    // lokalnie też aktualizujemy
     warehouse[index] = { ...item, ...newData };
     renderWarehouse();
 }
@@ -641,7 +640,7 @@ async function changeWarehouseQty(index, delta){
     const { error } = await supabaseClient
         .from("warehouse")
         .update({ qty:newQty })
-        .eq("id", item.id); // [web:36]
+        .eq("id", item.id);
 
     if(error){
         console.log("Warehouse qty update error", error);
@@ -661,7 +660,7 @@ async function removeWarehouse(index){
     const { error } = await supabaseClient
         .from("warehouse")
         .delete()
-        .eq("id", item.id); // [web:63][web:67]
+        .eq("id", item.id);
 
     if(error){
         console.log("Warehouse delete error", error);
