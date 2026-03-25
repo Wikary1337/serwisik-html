@@ -8,13 +8,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-
 body{
 font-family:Arial;
 background:#f3f3f3;
 padding:30px;
 }
-
 .container{
 max-width:900px;
 margin:auto;
@@ -22,32 +20,27 @@ background:white;
 padding:20px;
 border-radius:10px;
 }
-
 input,button,select{
 width:100%;
 padding:10px;
 margin-top:8px;
 }
-
 button{
 background:#2563eb;
 color:white;
 border:none;
 cursor:pointer;
 }
-
 .card{
 border:1px solid #ddd;
 padding:15px;
 margin-top:20px;
 border-radius:8px;
 }
-
 .tabs button{
 width:auto;
 margin-right:10px;
 }
-
 </style>
 
 </head>
@@ -64,32 +57,23 @@ margin-right:10px;
 <button onclick="showTab('warehouse')">Magazyn</button>
 </div>
 
-
 <!-- ================= ORDER ================= -->
 
 <div id="order">
 
 <div class="card">
-
 <h3>Dane klienta</h3>
-
 <input id="clientName" placeholder="Imię i nazwisko">
 <input id="clientPhone" placeholder="Telefon">
 <input id="deviceName" placeholder="Urządzenie">
-
 <p>Numer zlecenia: <span id="orderNumber"></span></p>
-
 </div>
 
-
 <div class="card">
-
 <h3>Czas pracy</h3>
-
-<input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
+<input id="laborRate" type="number" value="100">
 
 <input type="date" id="workDate">
-
 <input type="number" id="hoursInput" placeholder="Godziny">
 
 <button onclick="addHours()">Dodaj godziny</button>
@@ -97,20 +81,14 @@ margin-right:10px;
 <ul id="hoursList"></ul>
 
 <p>Suma godzin: <span id="totalHours">0</span></p>
-
 <p>Koszt pracy: <span id="laborCost">0</span> zł</p>
-
 </div>
 
-
 <div class="card">
-
 <h3>Części</h3>
 
 <input id="partName" placeholder="Nazwa części">
-
 <input id="partPrice" type="number" placeholder="Cena">
-
 <input id="partQty" type="number" value="1">
 
 <button onclick="addPart()">Dodaj część</button>
@@ -118,37 +96,32 @@ margin-right:10px;
 <ul id="partsList"></ul>
 
 <p>Suma części: <span id="partsCost">0</span> zł</p>
-
 </div>
 
-
 <div class="card">
-
 <h3>Dojazd</h3>
 
-<input id="km" type="number" placeholder="Kilometry">
+<input id="kmInput" type="number" placeholder="Kilometry">
+<input id="kmRate" type="number" value="1">
 
-<input id="kmRate" type="number" value="1" placeholder="Stawka km">
+<button onclick="addKm()">Dodaj kilometry</button>
+
+<ul id="kmList"></ul>
 
 <p>Koszt dojazdu: <span id="travelCost">0</span> zł</p>
-
 </div>
 
-
 <div class="card">
-
 <h3>Podsumowanie</h3>
 
 <p>Łączna cena: <span id="totalCost">0</span> zł</p>
 
 <button onclick="saveOrder()">Zapisz zlecenie</button>
-
 <button onclick="generatePDF()">Generuj PDF</button>
 
 </div>
 
 </div>
-
 
 <!-- ================= HISTORY ================= -->
 
@@ -160,8 +133,10 @@ margin-right:10px;
 
 <div id="ordersList"></div>
 
-</div>
+<h3>Szczegóły zlecenia</h3>
+<div id="orderDetails"></div>
 
+</div>
 
 <!-- ================= WAREHOUSE ================= -->
 
@@ -181,11 +156,11 @@ margin-right:10px;
 
 </div>
 
-
 <script>
 
 let dailyHours=[]
 let parts=[]
+let travels=[]
 let warehouse=[]
 let orders=[]
 
@@ -194,54 +169,59 @@ return "SRV-"+new Date().getFullYear()+"-"+Date.now().toString().slice(-5)
 }
 
 let orderNumber=generateOrderNumber()
-
 document.getElementById("orderNumber").innerText=orderNumber
 
-
 function showTab(tab){
-
 document.getElementById("order").style.display="none"
 document.getElementById("history").style.display="none"
 document.getElementById("warehouse").style.display="none"
-
 document.getElementById(tab).style.display="block"
-
 }
 
+/* -------- GODZINY -------- */
 
 function addHours(){
-
 const date=document.getElementById("workDate").value
 const hours=Number(document.getElementById("hoursInput").value)
-
 if(!date||!hours)return
 
 dailyHours.push({date,hours})
-
 renderHours()
-
 }
 
-
 function renderHours(){
-
 const list=document.getElementById("hoursList")
-
 list.innerHTML=""
 
-dailyHours.forEach(h=>{
+dailyHours.forEach((h,i)=>{
 const li=document.createElement("li")
-li.innerText=h.date+" — "+h.hours+" h"
+
+li.innerHTML=`
+${h.date} —
+<input type="number" value="${h.hours}" onchange="editHours(${i},this.value)" style="width:70px">
+h
+<button onclick="removeHours(${i})">Usuń</button>
+`
+
 list.appendChild(li)
 })
 
 calculate()
-
 }
 
+function editHours(i,value){
+dailyHours[i].hours=Number(value)
+calculate()
+}
+
+function removeHours(i){
+dailyHours.splice(i,1)
+renderHours()
+}
+
+/* -------- CZĘŚCI -------- */
 
 function addPart(){
-
 const name=document.getElementById("partName").value
 const price=Number(document.getElementById("partPrice").value)
 const qty=Number(document.getElementById("partQty").value)
@@ -249,44 +229,64 @@ const qty=Number(document.getElementById("partQty").value)
 if(!name||!price)return
 
 parts.push({name,price,qty})
-
 renderParts()
-
 }
 
-
 function renderParts(){
-
 const list=document.getElementById("partsList")
-
 list.innerHTML=""
 
 parts.forEach(p=>{
 const li=document.createElement("li")
-li.innerText=p.name+" "+p.qty+" x "+p.price+" zł"
+li.innerText=`${p.name} ${p.qty} x ${p.price} zł`
 list.appendChild(li)
 })
 
 calculate()
-
 }
 
+/* -------- KM -------- */
+
+function addKm(){
+const km=Number(document.getElementById("kmInput").value)
+if(!km)return
+
+travels.push(km)
+renderKm()
+}
+
+function renderKm(){
+const list=document.getElementById("kmList")
+list.innerHTML=""
+
+travels.forEach((k,i)=>{
+const li=document.createElement("li")
+li.innerHTML=`${k} km <button onclick="removeKm(${i})">Usuń</button>`
+list.appendChild(li)
+})
+
+calculate()
+}
+
+function removeKm(i){
+travels.splice(i,1)
+renderKm()
+}
+
+/* -------- KALKULACJA -------- */
 
 function calculate(){
 
 const laborRate=Number(document.getElementById("laborRate").value)
-
-const km=Number(document.getElementById("km").value||0)
-
 const kmRate=Number(document.getElementById("kmRate").value)
 
 const totalHours=dailyHours.reduce((s,d)=>s+d.hours,0)
-
 const laborCost=totalHours*laborRate
 
 const partsCost=parts.reduce((s,p)=>s+p.price*p.qty,0)
 
-const travelCost=km*kmRate
+const totalKm=travels.reduce((a,b)=>a+b,0)
+const travelCost=totalKm*kmRate
 
 const total=laborCost+partsCost+travelCost
 
@@ -295,9 +295,9 @@ document.getElementById("laborCost").innerText=laborCost
 document.getElementById("partsCost").innerText=partsCost
 document.getElementById("travelCost").innerText=travelCost
 document.getElementById("totalCost").innerText=total
-
 }
 
+/* -------- ZAPIS -------- */
 
 function saveOrder(){
 
@@ -308,26 +308,27 @@ clientPhone:document.getElementById("clientPhone").value,
 deviceName:document.getElementById("deviceName").value,
 parts,
 dailyHours,
+travels,
 total:document.getElementById("totalCost").innerText
 }
 
+orders=JSON.parse(localStorage.getItem("orders")||"[]")
 orders.unshift(order)
 
 localStorage.setItem("orders",JSON.stringify(orders))
 
-alert("Zapisano zlecenie")
+alert("Zapisano")
 
 renderOrders()
-
 }
 
+/* -------- HISTORIA -------- */
 
 function renderOrders(){
 
 orders=JSON.parse(localStorage.getItem("orders")||"[]")
 
 const search=document.getElementById("search").value.toLowerCase()
-
 const list=document.getElementById("ordersList")
 
 list.innerHTML=""
@@ -337,25 +338,46 @@ orders
 .forEach(o=>{
 
 const div=document.createElement("div")
-
 div.className="card"
 
 div.innerHTML=`
-
 Numer: ${o.orderNumber}<br>
 Klient: ${o.clientName}<br>
-Telefon: ${o.clientPhone}<br>
-Urządzenie: ${o.deviceName}<br>
-Koszt: ${o.total} zł
-
+Koszt: ${o.total} zł<br>
+<button onclick="showOrder('${o.orderNumber}')">Otwórz</button>
 `
 
 list.appendChild(div)
 
 })
-
 }
 
+function showOrder(num){
+
+const o=orders.find(o=>o.orderNumber===num)
+
+const div=document.getElementById("orderDetails")
+
+div.innerHTML=`
+<h4>${o.orderNumber}</h4>
+Klient: ${o.clientName}<br>
+Telefon: ${o.clientPhone}<br>
+Urządzenie: ${o.deviceName}<br>
+
+<h4>Godziny</h4>
+${o.dailyHours.map(h=>`${h.date} ${h.hours}h`).join("<br>")}
+
+<h4>Części</h4>
+${o.parts.map(p=>`${p.name} ${p.qty} x ${p.price}`).join("<br>")}
+
+<h4>KM</h4>
+${o.travels.map(k=>`${k} km`).join("<br>")}
+
+<h3>Razem: ${o.total} zł</h3>
+`
+}
+
+/* -------- MAGAZYN -------- */
 
 function addWarehouse(){
 
@@ -363,57 +385,44 @@ const name=document.getElementById("whName").value
 const number=document.getElementById("whNumber").value
 const qty=document.getElementById("whQty").value
 
+warehouse=JSON.parse(localStorage.getItem("warehouse")||"[]")
 warehouse.push({name,number,qty})
 
 localStorage.setItem("warehouse",JSON.stringify(warehouse))
 
 renderWarehouse()
-
 }
-
 
 function renderWarehouse(){
 
 warehouse=JSON.parse(localStorage.getItem("warehouse")||"[]")
 
 const list=document.getElementById("warehouseList")
-
 list.innerHTML=""
 
 warehouse.forEach(p=>{
 const li=document.createElement("li")
-li.innerText=p.name+" | nr:"+p.number+" | ilość:"+p.qty
+li.innerText=`${p.name} | nr:${p.number} | ilość:${p.qty}`
 list.appendChild(li)
 })
-
 }
 
+/* -------- PDF -------- */
 
 function generatePDF(){
 
 const {jsPDF}=window.jspdf
-
 const doc=new jsPDF()
 
 doc.text("PROTOKÓŁ NAPRAWY",10,10)
-
 doc.text("Numer: "+orderNumber,10,20)
-
 doc.text("Klient: "+document.getElementById("clientName").value,10,30)
-
-doc.text("Telefon: "+document.getElementById("clientPhone").value,10,40)
-
-doc.text("Urządzenie: "+document.getElementById("deviceName").value,10,50)
-
-doc.text("Cena: "+document.getElementById("totalCost").innerText+" zł",10,70)
+doc.text("Cena: "+document.getElementById("totalCost").innerText+" zł",10,40)
 
 doc.save("zlecenie_"+orderNumber+".pdf")
-
 }
 
-
 renderOrders()
-
 renderWarehouse()
 
 </script>
