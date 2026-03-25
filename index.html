@@ -174,7 +174,7 @@ li{
 <div id="order">
 <div class="card">
 <h3>Dane klienta</h3>
-<input id="clientName" placeholder="Imię i nazwisko" list="clientsList">
+<input id="clientName" placeholder="Imię i nazwisko" list="clientsList" oninput="fillClientData()">
 <datalist id="clientsList"></datalist>
 <input id="clientPhone" placeholder="Telefon">
 <input id="deviceName" placeholder="Urządzenie">
@@ -318,6 +318,21 @@ function showTab(tab){
     document.getElementById("history").style.display="none";
     document.getElementById("warehouse").style.display="none";
     document.getElementById(tab).style.display="block";
+}
+
+// ---------- AUTO-UZUPEŁNIANIE DANYCH KLIENTA ----------
+function fillClientData(){
+    const nameInput = document.getElementById("clientName").value.trim();
+    if(!nameInput) return;
+
+    const client = orders.find(o => 
+        (o.client_name || "").toLowerCase() === nameInput.toLowerCase()
+    );
+
+    if(client){
+        document.getElementById("clientPhone").value = client.client_phone || "";
+        document.getElementById("deviceName").value = client.device_name || "";
+    }
 }
 
 // ---------- GODZINY ----------
@@ -888,58 +903,79 @@ function generatePDF(){
     const clientPhone = document.getElementById("clientPhone").value || "—";
     const deviceName = document.getElementById("deviceName").value || "—";
     const totalCost = document.getElementById("totalCost").innerText || "0";
-    const laborCost = document.getElementById("laborCost").innerText || "0";
-    const travelCost = document.getElementById("travelCost").innerText || "0";
+    const laborCostVal = document.getElementById("laborCost").innerText || "0";
+    const travelCostVal = document.getElementById("travelCost").innerText || "0";
+    const partsCostVal = document.getElementById("partsCost").innerText || "0";
 
     let yPos = 20;
 
     // nagłówek
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text("PROTOKÓŁ NAPRAWY", 105, yPos, {align: 'center'});
-    yPos += 10;
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text("PROTOKOL NAPRAWY", 105, yPos, {align: 'center'});
+    yPos += 8;
 
     doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Numer zlecenia: ${orderNumber}`, 105, yPos, {align: 'center'});
+    doc.setFont('helvetica', 'normal');
+    doc.text("Numer zlecenia: " + orderNumber, 105, yPos, {align: 'center'});
     yPos += 12;
 
-    // dane klienta
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
+    // dane klienta w ramce
+    doc.setDrawColor(200);
+    doc.setFillColor(245, 247, 250);
+    doc.rect(15, yPos-5, 180, 24, 'FD');
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
     doc.text("Dane klienta", 20, yPos);
     yPos += 6;
+
     doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Imię i nazwisko: ${clientName}`, 20, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text("Imie i nazwisko: " + clientName, 20, yPos);
     yPos += 5;
-    doc.text(`Telefon: ${clientPhone}`, 20, yPos);
+    doc.text("Telefon: " + clientPhone, 20, yPos);
     yPos += 5;
-    doc.text(`Urządzenie: ${deviceName}`, 20, yPos);
+    doc.text("Urzadzenie: " + deviceName, 20, yPos);
     yPos += 10;
 
     // tabela części
     if(parts.length > 0){
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text("Użyte części", 20, yPos);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Uzyte czesci", 20, yPos);
         yPos += 4;
 
         const partsBody = parts.map(p => [
             p.name,
             p.qty.toString(),
-            `${p.price.toFixed(2)} zł`,
-            `${(p.price * p.qty).toFixed(2)} zł`
+            p.price.toFixed(2) + " zl",
+            (p.price * p.qty).toFixed(2) + " zl"
         ]);
 
         doc.autoTable({
             startY: yPos,
-            head: [['Nazwa', 'Ilość', 'Cena jedn.', 'Razem']],
+            head: [['Nazwa', 'Ilosc', 'Cena jedn.', 'Razem']],
             body: partsBody,
-            theme: 'striped',
-            headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
-            styles: { fontSize: 9, cellPadding: 3 },
-            margin: { left: 20, right: 20 }
+            theme: 'grid',
+            headStyles: { 
+                fillColor: [37, 99, 235], 
+                textColor: 255, 
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            styles: { 
+                fontSize: 9, 
+                cellPadding: 3,
+                font: 'helvetica'
+            },
+            columnStyles: {
+                0: { halign: 'left' },
+                1: { halign: 'center' },
+                2: { halign: 'right' },
+                3: { halign: 'right' }
+            },
+            margin: { left: 15, right: 15 }
         });
 
         yPos = doc.lastAutoTable.finalY + 8;
@@ -947,37 +983,73 @@ function generatePDF(){
 
     // wykonane czynności
     if(activities.length > 0){
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text("Wykonane czynności serwisowe", 20, yPos);
-        yPos += 6;
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Wykonane czynnosci serwisowe", 20, yPos);
+        yPos += 5;
+
+        doc.setDrawColor(200);
+        doc.setFillColor(250, 250, 250);
+        const actHeight = activities.length * 5 + 4;
+        doc.rect(15, yPos-2, 180, actHeight, 'FD');
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
         activities.forEach(act => {
-            doc.text(`- ${act}`, 20, yPos);
+            doc.text("- " + act, 20, yPos);
             yPos += 5;
         });
         yPos += 4;
     }
 
-    // koszty robocizny i dojazdu
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
+    // koszty w tabeli
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
     doc.text("Koszty", 20, yPos);
-    yPos += 6;
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Robocizna: ${laborCost} zł`, 20, yPos);
-    yPos += 5;
-    doc.text(`Dojazd: ${travelCost} zł`, 20, yPos);
-    yPos += 10;
+    yPos += 4;
 
-    // łączna cena
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(`ŁĄCZNIE: ${totalCost} zł`, 105, yPos, {align: 'center'});
+    const costsBody = [
+        ['Czesci', partsCostVal + " zl"],
+        ['Robocizna', laborCostVal + " zl"],
+        ['Dojazd', travelCostVal + " zl"]
+    ];
 
-    doc.save(`zlecenie_${orderNumber}.pdf`);
+    doc.autoTable({
+        startY: yPos,
+        body: costsBody,
+        theme: 'plain',
+        styles: { 
+            fontSize: 10,
+            cellPadding: 2,
+            font: 'helvetica'
+        },
+        columnStyles: {
+            0: { halign: 'left', fontStyle: 'bold' },
+            1: { halign: 'right' }
+        },
+        margin: { left: 15, right: 15 }
+    });
+
+    yPos = doc.lastAutoTable.finalY + 8;
+
+    // łączna cena w ramce
+    doc.setDrawColor(37, 99, 235);
+    doc.setFillColor(239, 246, 255);
+    doc.setLineWidth(0.5);
+    doc.rect(15, yPos-5, 180, 12, 'FD');
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text("LACZNIE: " + totalCost + " zl", 105, yPos, {align: 'center'});
+
+    // stopka
+    yPos = 280;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    doc.text("Wygenerowano: " + new Date().toLocaleString('pl-PL'), 105, yPos, {align: 'center'});
+
+    doc.save("zlecenie_" + orderNumber + ".pdf");
 }
 
 // ---------- START ----------
