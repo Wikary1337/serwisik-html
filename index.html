@@ -6,6 +6,8 @@
 
 <!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- jsPDF AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -34,20 +36,24 @@ h1{
 h2{
     margin-top:10px;
 }
-input, button{
+input, button, textarea{
     font-family:inherit;
 }
-input{
+input, textarea{
     width:100%;
     padding:8px 10px;
     margin-top:6px;
     border:1px solid #ccc;
     border-radius:4px;
 }
-input:focus{
+input:focus, textarea:focus{
     outline:none;
     border-color:#2563eb;
     box-shadow:0 0 0 1px rgba(37,99,235,0.3);
+}
+textarea{
+    resize:vertical;
+    min-height:60px;
 }
 button{
     padding:10px 16px;
@@ -177,6 +183,24 @@ li{
 </div>
 
 <div class="card">
+<h3>Części</h3>
+<input id="partName" placeholder="Nazwa części" list="partsList">
+<datalist id="partsList"></datalist>
+<input id="partPrice" type="number" placeholder="Cena">
+<input id="partQty" type="number" value="1" placeholder="Ilość">
+<button onclick="addPart()">Dodaj część</button>
+<ul id="partsListUl"></ul>
+<p>Suma części: <span id="partsCost">0</span> zł</p>
+</div>
+
+<div class="card">
+<h3>Wykonane czynności</h3>
+<textarea id="activityDesc" placeholder="Opisz wykonane prace"></textarea>
+<button onclick="addActivity()">Dodaj czynność</button>
+<ul id="activitiesList"></ul>
+</div>
+
+<div class="card">
 <h3>Czas pracy</h3>
 <input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
 <input type="date" id="workDate">
@@ -185,16 +209,6 @@ li{
 <ul id="hoursList"></ul>
 <p>Suma godzin: <span id="totalHours">0</span></p>
 <p>Koszt pracy: <span id="laborCost">0</span> zł</p>
-</div>
-
-<div class="card">
-<h3>Części</h3>
-<input id="partName" placeholder="Nazwa części">
-<input id="partPrice" type="number" placeholder="Cena">
-<input id="partQty" type="number" value="1" placeholder="Ilość">
-<button onclick="addPart()">Dodaj część</button>
-<ul id="partsList"></ul>
-<p>Suma części: <span id="partsCost">0</span> zł</p>
 </div>
 
 <div class="card">
@@ -248,7 +262,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ----------------- STANY -----------------
-let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[];
+let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
@@ -264,14 +278,12 @@ async function generateOrderNumber(){
     const d = String(now.getDate()).padStart(2,"0");
     const datePrefix = `${y}${m}${d}`;
 
-    const { data, error } = await supabaseClient
+    const { data, error, count } = await supabaseClient
         .from("orders")
-        .select("id", { count: "exact", head: true })
+        .select("id", { count: "exact", head: false })
         .ilike("order_number", `${datePrefix}-%`);
 
-    // przy head:true data jest pustą tablicą, realne count jest w meta,
-    // ale jeśli meta nie jest dostępne, liczymy tak jak dla nowych tabel
-    const countForDay = 0; 
+    const countForDay = (error || !data) ? 0 : data.length;
     const sequence = countForDay + 1;
 
     return `${datePrefix}-${sequence}`;
@@ -367,7 +379,7 @@ function editPart(index, field, value){
 }
 
 function renderParts(){
-    const list=document.getElementById("partsList");
+    const list=document.getElementById("partsListUl");
     list.innerHTML="";
     parts.forEach((p,i)=>{
         const li=document.createElement("li");
@@ -386,6 +398,39 @@ function renderParts(){
         list.appendChild(li);
     });
     calculate();
+}
+
+// ---------- WYKONANE CZYNNOŚCI ----------
+function addActivity(){
+    const desc = document.getElementById("activityDesc").value.trim();
+    if(!desc) return;
+    activities.push(desc);
+    document.getElementById("activityDesc").value = "";
+    renderActivities();
+}
+
+function editActivity(index, value){
+    activities[index] = value;
+}
+
+function removeActivity(index){
+    activities.splice(index, 1);
+    renderActivities();
+}
+
+function renderActivities(){
+    const list = document.getElementById("activitiesList");
+    list.innerHTML = "";
+    activities.forEach((act, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            <input type="text" value="${act}"
+                   onchange="editActivity(${i}, this.value)"
+                   style="width:calc(100% - 80px); margin-right:4px;">
+            <button class="small-btn" onclick="removeActivity(${i})">Usuń</button>
+        `;
+        list.appendChild(li);
+    });
 }
 
 // ---------- KM ----------
@@ -443,6 +488,7 @@ async function saveOrder(){
         parts:[...parts],
         hours:[...dailyHours],
         travels:[...travels],
+        activities:[...activities],
         total:total
     };
 
@@ -454,7 +500,6 @@ async function saveOrder(){
         return;
     }
 
-    // automatyczne zużycie magazynu po poprawnym zapisie
     await applyWarehouseUsage(parts);
 
     alert("Zlecenie zapisane w bazie");
@@ -481,6 +526,7 @@ async function updateOrder(){
         parts:[...parts],
         hours:[...dailyHours],
         travels:[...travels],
+        activities:[...activities],
         total:total
     };
 
@@ -503,8 +549,8 @@ async function updateOrder(){
 
 // ---------- RESET FORMULARZA ----------
 function clearForm(){
-    dailyHours=[]; parts=[]; travels=[];
-    renderHours(); renderParts(); renderKm();
+    dailyHours=[]; parts=[]; travels=[]; activities=[];
+    renderHours(); renderParts(); renderKm(); renderActivities();
     document.getElementById("clientName").value="";
     document.getElementById("clientPhone").value="";
     document.getElementById("deviceName").value="";
@@ -538,7 +584,6 @@ async function renderOrders(){
         list.appendChild(div);
     });
 
-    // uaktualnij podpowiedzi klientów
     updateClientsSuggestions();
 }
 
@@ -552,10 +597,12 @@ function showOrder(num){
     Klient: ${o.client_name}<br>
     Telefon: ${o.client_phone}<br>
     Urządzenie: ${o.device_name}<br>
+    <h4>Części</h4>
+    ${Array.isArray(o.parts)?o.parts.map(p=>`${p.name} ${p.qty} x ${p.price} zł`).join("<br>"):""}
+    <h4>Wykonane czynności</h4>
+    ${Array.isArray(o.activities)?o.activities.map(a=>`- ${a}`).join("<br>"):""}
     <h4>Godziny</h4>
     ${Array.isArray(o.hours)?o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
-    <h4>Części</h4>
-    ${Array.isArray(o.parts)?o.parts.map(p=>`${p.name} ${p.qty} x ${p.price}`).join("<br>"):""}
     <h4>Dojazd</h4>
     ${Array.isArray(o.travels)?o.travels.map(k=>`${k} km`).join("<br>"):""}
     <h3>Razem: ${o.total} zł</h3>
@@ -581,10 +628,12 @@ function editOrder(num){
     dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
     parts = Array.isArray(o.parts) ? [...o.parts] : [];
     travels = Array.isArray(o.travels) ? [...o.travels] : [];
+    activities = Array.isArray(o.activities) ? [...o.activities] : [];
 
     renderHours();
     renderParts();
     renderKm();
+    renderActivities();
     calculate();
 
     setEditMode(true);
@@ -649,6 +698,7 @@ async function loadWarehouse(){
     }
     warehouse = data || [];
     renderWarehouse();
+    updatePartsSuggestions();
 }
 
 // dodanie nowej pozycji
@@ -708,6 +758,7 @@ async function editWarehouseItem(index, field, value){
 
     warehouse[index] = { ...item, ...newData };
     renderWarehouse();
+    updatePartsSuggestions();
 }
 
 // zmiana ilości +/- 1
@@ -750,6 +801,7 @@ async function removeWarehouse(index){
 
     warehouse.splice(index,1);
     renderWarehouse();
+    updatePartsSuggestions();
 }
 
 function renderWarehouse(){
@@ -773,6 +825,21 @@ function renderWarehouse(){
             <button class="small-btn" onclick="removeWarehouse(${i})">Usuń</button>
         `;
         list.appendChild(li);
+    });
+}
+
+// ---------- PODPOWIEDZI CZĘŚCI Z MAGAZYNU ----------
+function updatePartsSuggestions(){
+    const datalist = document.getElementById("partsList");
+    if(!datalist) return;
+
+    datalist.innerHTML = "";
+    warehouse.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        opt.setAttribute("data-number", item.number);
+        opt.setAttribute("data-qty", item.qty);
+        datalist.appendChild(opt);
     });
 }
 
@@ -810,13 +877,107 @@ async function applyWarehouseUsage(partsUsed){
 
 // ---------- PDF ----------
 function generatePDF(){
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF();
-    doc.text("PROTOKÓŁ NAPRAWY",10,10);
-    doc.text("Numer: "+orderNumber,10,20);
-    doc.text("Klient: "+document.getElementById("clientName").value,10,30);
-    doc.text("Cena: "+document.getElementById("totalCost").innerText+" zł",10,40);
-    doc.save("zlecenie_"+orderNumber+".pdf");
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    const clientName = document.getElementById("clientName").value || "—";
+    const clientPhone = document.getElementById("clientPhone").value || "—";
+    const deviceName = document.getElementById("deviceName").value || "—";
+    const totalCost = document.getElementById("totalCost").innerText || "0";
+    const laborCost = document.getElementById("laborCost").innerText || "0";
+    const travelCost = document.getElementById("travelCost").innerText || "0";
+
+    let yPos = 20;
+
+    // nagłówek
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text("PROTOKÓŁ NAPRAWY", 105, yPos, {align: 'center'});
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Numer zlecenia: ${orderNumber}`, 105, yPos, {align: 'center'});
+    yPos += 12;
+
+    // dane klienta
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text("Dane klienta", 20, yPos);
+    yPos += 6;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Imię i nazwisko: ${clientName}`, 20, yPos);
+    yPos += 5;
+    doc.text(`Telefon: ${clientPhone}`, 20, yPos);
+    yPos += 5;
+    doc.text(`Urządzenie: ${deviceName}`, 20, yPos);
+    yPos += 10;
+
+    // tabela części
+    if(parts.length > 0){
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text("Użyte części", 20, yPos);
+        yPos += 4;
+
+        const partsBody = parts.map(p => [
+            p.name,
+            p.qty.toString(),
+            `${p.price.toFixed(2)} zł`,
+            `${(p.price * p.qty).toFixed(2)} zł`
+        ]);
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Nazwa', 'Ilość', 'Cena jedn.', 'Razem']],
+            body: partsBody,
+            theme: 'striped',
+            headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 9, cellPadding: 3 },
+            margin: { left: 20, right: 20 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 8;
+    }
+
+    // wykonane czynności
+    if(activities.length > 0){
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text("Wykonane czynności serwisowe", 20, yPos);
+        yPos += 6;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        activities.forEach(act => {
+            doc.text(`- ${act}`, 20, yPos);
+            yPos += 5;
+        });
+        yPos += 4;
+    }
+
+    // koszty robocizny i dojazdu
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text("Koszty", 20, yPos);
+    yPos += 6;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Robocizna: ${laborCost} zł`, 20, yPos);
+    yPos += 5;
+    doc.text(`Dojazd: ${travelCost} zł`, 20, yPos);
+    yPos += 10;
+
+    // łączna cena
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text(`ŁĄCZNIE: ${totalCost} zł`, 105, yPos, {align: 'center'});
+
+    doc.save(`zlecenie_${orderNumber}.pdf`);
 }
 
 // ---------- START ----------
