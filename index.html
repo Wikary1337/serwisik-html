@@ -582,11 +582,9 @@ async function addWarehouse(){
 
     if(!name || !number || isNaN(qty)) return;
 
-    const { data, error } = await supabaseClient
+    const { error } = await supabaseClient
         .from("warehouse")
-        .insert([{ name, number, qty }])
-        .select()
-        .single();
+        .insert([{ name, number, qty }]);   // bez select().single()
 
     if(error){
         console.log("Warehouse insert error", error);
@@ -594,11 +592,12 @@ async function addWarehouse(){
         return;
     }
 
-    warehouse.push(data);
     document.getElementById("whName").value = "";
     document.getElementById("whNumber").value = "";
     document.getElementById("whQty").value = "";
-    renderWarehouse();
+
+    // po udanym insercie odśwież magazyn z bazy
+    loadWarehouse();
 }
 
 // edycja pól name/number/qty
@@ -695,7 +694,7 @@ function renderWarehouse(){
         list.appendChild(li);
     });
 }
-
+    
 // ---------- PDF ----------
 function generatePDF(){
     const {jsPDF}=window.jspdf;
