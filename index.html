@@ -584,7 +584,12 @@ async function addWarehouse(){
 
     const { error } = await supabaseClient
         .from("warehouse")
-        .insert([{ name, number, qty }]);   // bez select().single()
+        .insert([{
+            name,
+            number,
+            qty,
+            created_at: new Date().toISOString()   // ważne pole
+        }]);
 
     if(error){
         console.log("Warehouse insert error", error);
