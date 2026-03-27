@@ -277,6 +277,18 @@ let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
 
+function normalizeArrayField(value){
+if (!value) return [];
+if (Array.isArray(value)) return value;
+try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+ } catch (e) {
+    console.warn("Nie udało się zparsować pola JSON:", value, e);
+    return [];
+    }
+}
+
 // inicjalizacja numeru zlecenia
 initOrderNumber();
 
@@ -751,16 +763,27 @@ async function showOrder(num){
     const o=orders.find(x=>x.order_number===num);
     if(!o) return;
 
-    const { data: todosData, error: todosError } = await supabaseClient
-        .from("todos")
-        .select("*")
-        .eq("order_number", num)
-        .order("created_at", { ascending: true });
+    const oParts      = normalizeArrayField(o.parts);
+    const oActivities = normalizeArrayField(o.activities);
+    const oHours      = normalizeArrayField(o.hours);
+    const oTravels    = normalizeArrayField(o.travels);
 
-    if(todosError){
-        console.log("Błąd ładowania TODO do historii:", todosError);
-    }
+    // TODO z Supabase jak było...
 
+    const div=document.getElementById("orderDetails");
+    div.innerHTML=`
+    ...
+    <h4>Czesci</h4>
+    ${oParts.length ? oParts.map(p=>`${p.name} ${p.qty} x ${p.price} zl`).join("<br>"):""}
+    <h4>Wykonane czynnosci</h4>
+    ${oActivities.length ? oActivities.map(a=>`- ${a}`).join("<br>"):""}
+    <h4>Godziny</h4>
+    ${oHours.length ? oHours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
+    <h4>Dojazd</h4>
+    ${oTravels.length ? oTravels.map(k=>`${k} km`).join("<br>"):""}
+    ...
+    `;
+}
     const todosHistory = todosData || [];
 
     const div=document.getElementById("orderDetails");
@@ -805,10 +828,10 @@ async function editOrder(num){
         orderNumber = o.order_number;
         document.getElementById("orderNumber").innerText = orderNumber;
 
-        dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
-        parts      = Array.isArray(o.parts) ? [...o.parts] : [];
-        travels    = Array.isArray(o.travels) ? [...o.travels] : [];
-        activities = Array.isArray(o.activities) ? [...o.activities] : [];
+       dailyHours = normalizeArrayField(o.hours);
+       parts      = normalizeArrayField(o.parts);
+       travels    = normalizeArrayField(o.travels);
+       activities = normalizeArrayField(o.activities);
 
         renderHours();
         renderParts();
@@ -835,10 +858,10 @@ function generatePdfFromHistory(orderNum){
     document.getElementById("clientPhone").value = o.client_phone || "";
     document.getElementById("deviceName").value = o.device_name || "";
 
-    dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
-    parts = Array.isArray(o.parts) ? [...o.parts] : [];
-    travels = Array.isArray(o.travels) ? [...o.travels] : [];
-    activities = Array.isArray(o.activities) ? [...o.activities] : [];
+    dailyHours = normalizeArrayField(o.hours);
+    parts      = normalizeArrayField(o.parts);
+    travels    = normalizeArrayField(o.travels);
+    activities = normalizeArrayField(o.activities);
 
     renderHours();
     renderParts();
