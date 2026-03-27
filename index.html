@@ -200,7 +200,6 @@ li{
 <ul id="activitiesList"></ul>
 </div>
 
-<!-- NOWA SEKCJA: LISTA DO ZROBIENIA -->
 <div class="card">
   <h3>Lista do zrobienia</h3>
   <div>
@@ -266,7 +265,6 @@ li{
 </div> <!-- container -->
 
 <script>
-
 // ----------------- SUPABASE -----------------
 const SUPABASE_URL = "https://avgrfeghycrsawaoiiil.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2Z3JmZWdoeWNyc2F3YW9paWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzQ4MTAsImV4cCI6MjA5MDAxMDgxMH0.q2HguQj2veHNuvyE9YC8XATymfa2pcRrVtW8mEpJJ-c";
@@ -274,7 +272,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
-let todos = []; // <-- NOWE: zadania powiązane ze zleceniem
+let todos = [];
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
@@ -480,9 +478,7 @@ function renderActivities(){
     });
 }
 
-// ---------- LISTA DO ZROBIENIA (TODO POWIĄZANA ZE ZLECENIEM) ----------
-
-// pobranie zadań dla zlecenia
+// ---------- LISTA DO ZROBIENIA ----------
 async function loadTodosForOrder(orderNum){
     if(!orderNum) return;
     const { data, error } = await supabaseClient
@@ -500,7 +496,6 @@ async function loadTodosForOrder(orderNum){
     renderTodos();
 }
 
-// render listy
 function renderTodos(){
     const list = document.getElementById("todoList");
     if(!list) return;
@@ -520,7 +515,6 @@ function renderTodos(){
     });
 }
 
-// dodanie zadania
 async function addTodo(){
     const input = document.getElementById("todoText");
     const text = input.value.trim();
@@ -548,7 +542,6 @@ async function addTodo(){
     input.value = "";
 }
 
-// zmiana statusu
 async function toggleTodoDone(index, checked){
     const todo = todos[index];
     if(!todo) return;
@@ -569,7 +562,6 @@ async function toggleTodoDone(index, checked){
     renderTodos();
 }
 
-// usuwanie
 async function deleteTodo(index){
     const todo = todos[index];
     if(!todo) return;
@@ -717,46 +709,48 @@ function clearForm(){
 // ---------- HISTORIA ----------
 async function renderOrders(){
     console.log("renderOrders() start");
-    const {data,error}=await supabaseClient
-        .from("orders")
-        .select("*")
-        .order("id",{ascending:false});
+    try{
+        const {data, error} = await supabaseClient
+            .from("orders")
+            .select("*")
+            .order("id",{ascending:false});
 
-    if(error){
-        console.log("renderOrders error:", error);
-        alert("Błąd historii: " + error.message);
-        return;
+        if(error){
+            console.error("renderOrders error:", error);
+            alert("Błąd wczytywania historii: " + error.message);
+            return;
+        }
+
+        orders = data || [];
+        const search = document.getElementById("search").value?.toLowerCase() || "";
+        const list = document.getElementById("ordersList");
+        list.innerHTML = "";
+        orders
+        .filter(o => (o.client_name||"").toLowerCase().includes(search))
+        .forEach(o=>{
+            const div=document.createElement("div");
+            div.className="card";
+            div.innerHTML=`Numer: ${o.order_number}<br>
+            Klient: ${o.client_name}<br>
+            Koszt: ${o.total} zl<br>
+            <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
+            <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
+            <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
+            <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
+            list.appendChild(div);
+        });
+
+        updateClientsSuggestions();
+    }catch(e){
+        console.error("renderOrders exception:", e);
+        alert("Wyjątek w renderOrders: " + e.message);
     }
-    console.log("orders from supabase =", data);
-
-    orders=data || [];
-    orders=data || [];
-    const search=document.getElementById("search").value?.toLowerCase() || "";
-    const list=document.getElementById("ordersList");
-    list.innerHTML="";
-    orders
-    .filter(o=>(o.client_name||"").toLowerCase().includes(search))
-    .forEach(o=>{
-        const div=document.createElement("div");
-        div.className="card";
-        div.innerHTML=`Numer: ${o.order_number}<br>
-        Klient: ${o.client_name}<br>
-        Koszt: ${o.total} zl<br>
-        <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
-        <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
-        <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
-        <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
-        list.appendChild(div);
-    });
-
-    updateClientsSuggestions();
 }
 
 async function showOrder(num){
     const o=orders.find(x=>x.order_number===num);
     if(!o) return;
 
-    // pobierz TODO z Supabase dla tego zlecenia, żeby pokazać w historii
     const { data: todosData, error: todosError } = await supabaseClient
         .from("todos")
         .select("*")
@@ -790,10 +784,7 @@ async function showOrder(num){
     `;
 }
 
-// EDYCJA ZLECENIA
 async function editOrder(num){
-    console.log("editOrder start, num =", num);
-    console.log("orders array =", orders);
     console.log("editOrder start, num =", num);
     try{
         const o = orders.find(x => x.order_number === num);
@@ -802,22 +793,18 @@ async function editOrder(num){
             return;
         }
 
-        // przełącz na zakładkę zlecenie
         showTab('order');
 
         currentOrderId = o.id;
         currentOrderNumber = o.order_number;
 
-        // dane klienta
         document.getElementById("clientName").value = o.client_name || "";
         document.getElementById("clientPhone").value = o.client_phone || "";
         document.getElementById("deviceName").value = o.device_name || "";
 
-        // numer zlecenia
         orderNumber = o.order_number;
         document.getElementById("orderNumber").innerText = orderNumber;
 
-        // godziny / części / dojazd / czynności
         dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
         parts      = Array.isArray(o.parts) ? [...o.parts] : [];
         travels    = Array.isArray(o.travels) ? [...o.travels] : [];
@@ -829,7 +816,6 @@ async function editOrder(num){
         renderActivities();
         calculate();
 
-        // TODO dla tego zlecenia
         await loadTodosForOrder(orderNumber);
         setEditMode(true);
 
@@ -840,7 +826,6 @@ async function editOrder(num){
     }
 }
 
-// tworzenie PDF z historii
 function generatePdfFromHistory(orderNum){
     const o = orders.find(x => x.order_number === orderNum);
     if(!o) return;
@@ -908,47 +893,6 @@ function updateClientsSuggestions(){
     });
 }
 
-// ---------- HISTORIA ----------
-async function renderOrders(){
-    console.log("renderOrders() start");
-    try{
-        const {data, error} = await supabaseClient
-            .from("orders")
-            .select("*")
-            .order("id",{ascending:false});
-
-        if(error){
-            console.error("renderOrders error:", error);
-            alert("Błąd wczytywania historii: " + error.message);
-            return;
-        }
-
-        orders = data || [];
-        const search = document.getElementById("search").value?.toLowerCase() || "";
-        const list = document.getElementById("ordersList");
-        list.innerHTML = "";
-        orders
-        .filter(o => (o.client_name||"").toLowerCase().includes(search))
-        .forEach(o=>{
-            const div=document.createElement("div");
-            div.className="card";
-            div.innerHTML=`Numer: ${o.order_number}<br>
-            Klient: ${o.client_name}<br>
-            Koszt: ${o.total} zl<br>
-            <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
-            <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
-            <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
-            <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
-            list.appendChild(div);
-        });
-
-        updateClientsSuggestions();
-    }catch(e){
-        console.error("renderOrders exception:", e);
-        alert("Wyjątek w renderOrders: " + e.message);
-    }
-}
-
 // ---------- MAGAZYN ----------
 async function loadWarehouse(){
     console.log("loadWarehouse() start");
@@ -971,6 +915,38 @@ async function loadWarehouse(){
         console.error("loadWarehouse exception:", e);
         alert("Wyjątek w loadWarehouse: " + e.message);
     }
+}
+
+async function addWarehouse(){
+    const name = document.getElementById("whName").value;
+    const number = document.getElementById("whNumber").value;
+    const qty = parseInt(document.getElementById("whQty").value);
+    const price = parseFloat(document.getElementById("whPrice").value);
+
+    if(!name || !number || isNaN(qty) || isNaN(price)) return;
+
+    const { error } = await supabaseClient
+        .from("warehouse")
+        .insert([{
+            name,
+            number,
+            qty,
+            price,
+            created_at: new Date().toISOString()
+        }]);
+
+    if(error){
+        console.log("Warehouse insert error", error);
+        alert("Blad zapisu magazynu");
+        return;
+    }
+
+    document.getElementById("whName").value = "";
+    document.getElementById("whNumber").value = "";
+    document.getElementById("whQty").value = "";
+    document.getElementById("whPrice").value = "";
+
+    loadWarehouse();
 }
 
 async function editWarehouseItem(index, field, value){
@@ -1122,7 +1098,6 @@ async function applyWarehouseUsage(partsUsed){
 }
 
 // ---------- PDF ----------
-
 function stripPolishChars(text){
     if(!text) return "";
     const map = {
@@ -1298,7 +1273,6 @@ function generatePDF(){
 // ---------- START ----------
 renderOrders();
 loadWarehouse();
-
 </script>
 </body>
 </html>
