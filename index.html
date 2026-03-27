@@ -716,12 +716,20 @@ function clearForm(){
 
 // ---------- HISTORIA ----------
 async function renderOrders(){
+    console.log("renderOrders() start");
     const {data,error}=await supabaseClient
         .from("orders")
         .select("*")
         .order("id",{ascending:false});
 
-    if(error){console.log(error); return;}
+    if(error){
+        console.log("renderOrders error:", error);
+        alert("Błąd historii: " + error.message);
+        return;
+    }
+    console.log("orders from supabase =", data);
+
+    orders=data || [];
     orders=data || [];
     const search=document.getElementById("search").value?.toLowerCase() || "";
     const list=document.getElementById("ordersList");
