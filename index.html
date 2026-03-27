@@ -883,53 +883,69 @@ function updateClientsSuggestions(){
     });
 }
 
-// ---------- MAGAZYN (Supabase) ----------
+// ---------- HISTORIA ----------
+async function renderOrders(){
+    console.log("renderOrders() start");
+    try{
+        const {data, error} = await supabaseClient
+            .from("orders")
+            .select("*")
+            .order("id",{ascending:false});
 
-async function loadWarehouse(){
-    const { data, error } = await supabaseClient
-        .from("warehouse")
-        .select("*")
-        .order("id", { ascending: true });
+        if(error){
+            console.error("renderOrders error:", error);
+            alert("Błąd wczytywania historii: " + error.message);
+            return;
+        }
 
-    if(error){
-        console.log("Warehouse load error", error);
-        return;
+        orders = data || [];
+        const search = document.getElementById("search").value?.toLowerCase() || "";
+        const list = document.getElementById("ordersList");
+        list.innerHTML = "";
+        orders
+        .filter(o => (o.client_name||"").toLowerCase().includes(search))
+        .forEach(o=>{
+            const div=document.createElement("div");
+            div.className="card";
+            div.innerHTML=`Numer: ${o.order_number}<br>
+            Klient: ${o.client_name}<br>
+            Koszt: ${o.total} zl<br>
+            <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
+            <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
+            <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
+            <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
+            list.appendChild(div);
+        });
+
+        updateClientsSuggestions();
+    }catch(e){
+        console.error("renderOrders exception:", e);
+        alert("Wyjątek w renderOrders: " + e.message);
     }
-    warehouse = data || [];
-    renderWarehouse();
-    updatePartsSuggestions();
 }
 
-async function addWarehouse(){
-    const name = document.getElementById("whName").value;
-    const number = document.getElementById("whNumber").value;
-    const qty = parseInt(document.getElementById("whQty").value);
-    const price = parseFloat(document.getElementById("whPrice").value);
+// ---------- MAGAZYN ----------
+async function loadWarehouse(){
+    console.log("loadWarehouse() start");
+    try{
+        const { data, error } = await supabaseClient
+            .from("warehouse")
+            .select("*")
+            .order("id", { ascending: true });
 
-    if(!name || !number || isNaN(qty) || isNaN(price)) return;
+        if(error){
+            console.error("Warehouse load error", error);
+            alert("Błąd wczytywania magazynu: " + error.message);
+            return;
+        }
 
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .insert([{
-            name,
-            number,
-            qty,
-            price,
-            created_at: new Date().toISOString()
-        }]);
-
-    if(error){
-        console.log("Warehouse insert error", error);
-        alert("Blad zapisu magazynu");
-        return;
+        warehouse = data || [];
+        renderWarehouse();
+        updatePartsSuggestions();
+    }catch(e){
+        console.error("loadWarehouse exception:", e);
+        alert("Wyjątek w loadWarehouse: " + e.message);
     }
-
-    document.getElementById("whName").value = "";
-    document.getElementById("whNumber").value = "";
-    document.getElementById("whQty").value = "";
-    document.getElementById("whPrice").value = "";
-
-    loadWarehouse();
 }
 
 async function editWarehouseItem(index, field, value){
