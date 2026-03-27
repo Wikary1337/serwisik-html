@@ -227,6 +227,14 @@ li{
     <button id="saveNewBtn" onclick="saveOrder()">Zapisz zlecenie</button>
     <button id="updateBtn" style="display:none;" onclick="updateOrder()">Zapisz zmiany</button>
     <button onclick="generatePDF()">Generuj PDF</button>
+
+<div class="card">
+<h3>Lista do zrobienia</h3>
+<div>
+<input id="todoText" placeholder="Co trzeba zrobić">
+<button onclick="addTodo()">Dodaj zadanie</button>
+</div>
+<ul id="todoList"></ul>
 </div>
 </div>
 </div>
@@ -264,6 +272,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
+let todos = [];
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
@@ -542,6 +551,8 @@ async function saveOrder(){
     alert("Zlecenie zapisane w bazie");
     clearForm();
     renderOrders();
+    todos = [];
+    renderTodos();
 }
 
 // ---------- UPDATE ISTNIEJĄCEGO ZLECENIA ----------
@@ -620,6 +631,118 @@ async function renderOrders(){
         <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
         <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
         list.appendChild(div);
+
+        // ===== LISTA DO ZROBIENIA POWIĄZANA ZE ZLECENIEM =====
+
+// pobranie zadań dla bieżącego numeru zlecenia
+async function loadTodosForOrder(orderNum){
+    if(!orderNum) return;
+    const { data, error } = await supabaseClient
+        .from("todos")
+        .select("*")
+        .eq("order_number", orderNum)
+        .order("created_at", { ascending: true });
+
+    if(error){
+        console.log("Błąd ładowania TODO:", error);
+        return;
+    }
+
+    todos = data || [];
+    renderTodos();
+}
+
+// render listy na ekranie
+function renderTodos(){
+    const list = document.getElementById("todoList");
+    if(!list) return; // gdy jesteśmy na innej zakładce
+    list.innerHTML = "";
+
+    todos.forEach((t, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            <input type="checkbox" ${t.done ? "checked" : ""} 
+                   onchange="toggleTodoDone(${i}, this.checked)">
+            <span style="${t.done ? "text-decoration: line-through; color: gray;" : ""}">
+                ${t.text}
+            </span>
+            <button class="small-btn" onclick="deleteTodo(${i})">Usuń</button>
+        `;
+        list.appendChild(li);
+    });
+}
+
+// dodanie zadania
+async function addTodo(){
+    const input = document.getElementById("todoText");
+    const text = input.value.trim();
+    if(!text) return;
+
+    // bieżący numer zlecenia z widoku
+    const orderNum = orderNumber;
+    if(!orderNum){
+        alert("Brak numeru zlecenia");
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("todos")
+        .insert([{ order_number: orderNum, text, done: false }])
+        .select();
+
+    if(error){
+        console.log("Błąd dodawania TODO:", error);
+        alert("Błąd dodawania zadania");
+        return;
+    }
+
+    // Supabase zwraca nowy rekord – dokładamy go do listy
+    todos.push(data[0]);
+    renderTodos();
+    input.value = "";
+}
+
+// zaznaczenie / odznaczenie
+async function toggleTodoDone(index, checked){
+    const todo = todos[index];
+    if(!todo) return;
+
+    const { error } = await supabaseClient
+        .from("todos")
+        .update({ done: checked })
+        .eq("id", todo.id);
+
+    if(error){
+        console.log("Błąd aktualizacji TODO:", error);
+        alert("Błąd aktualizacji zadania");
+        // cofnięcie zmiany w UI
+        renderTodos();
+        return;
+    }
+
+    todos[index].done = checked;
+    renderTodos();
+}
+
+// usuwanie zadania
+async function deleteTodo(index){
+    const todo = todos[index];
+    if(!todo) return;
+
+    const { error } = await supabaseClient
+        .from("todos")
+        .delete()
+        .eq("id", todo.id);
+
+    if(error){
+        console.log("Błąd usuwania TODO:", error);
+        alert("Błąd usuwania zadania");
+        return;
+    }
+
+    todos.splice(index, 1);
+    renderTodos();
+}
     });
 
     updateClientsSuggestions();
@@ -644,6 +767,8 @@ function showOrder(num){
     <h4>Dojazd</h4>
     ${Array.isArray(o.travels)?o.travels.map(k=>`${k} km`).join("<br>"):""}
     <h3>Razem: ${o.total} zl</h3>
+    setEditMode(true);
+    loadTodosForOrder(orderNumber); // lub num, bo to to samo
     `;
 }
 
