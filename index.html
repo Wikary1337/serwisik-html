@@ -200,6 +200,16 @@ li{
 <ul id="activitiesList"></ul>
 </div>
 
+<!-- NOWA SEKCJA: LISTA DO ZROBIENIA -->
+<div class="card">
+  <h3>Lista do zrobienia</h3>
+  <div>
+    <input id="todoText" placeholder="Co trzeba zrobić">
+    <button onclick="addTodo()">Dodaj zadanie</button>
+  </div>
+  <ul id="todoList"></ul>
+</div>
+
 <div class="card">
 <h3>Czas pracy</h3>
 <input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
@@ -227,14 +237,6 @@ li{
     <button id="saveNewBtn" onclick="saveOrder()">Zapisz zlecenie</button>
     <button id="updateBtn" style="display:none;" onclick="updateOrder()">Zapisz zmiany</button>
     <button onclick="generatePDF()">Generuj PDF</button>
-
-<div class="card">
-<h3>Lista do zrobienia</h3>
-<div>
-<input id="todoText" placeholder="Co trzeba zrobić">
-<button onclick="addTodo()">Dodaj zadanie</button>
-</div>
-<ul id="todoList"></ul>
 </div>
 </div>
 </div>
@@ -272,7 +274,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
-let todos = [];
+let todos = []; // <-- NOWE: zadania powiązane ze zleceniem
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
@@ -350,11 +352,10 @@ async function fillPartPriceFromWarehouse(){
     const partInput = document.getElementById("partName").value.trim();
     if(!partInput) return;
 
-    // pobierz dokładnie jedną pozycję z magazynu o tej nazwie
     const { data, error } = await supabaseClient
         .from("warehouse")
         .select("price")
-        .ilike("name", partInput);   // case‑insensitive, pozwala na różne wielkości liter
+        .ilike("name", partInput);
 
     if(error){
         console.log("Warehouse price fetch error", error);
@@ -479,6 +480,115 @@ function renderActivities(){
     });
 }
 
+// ---------- LISTA DO ZROBIENIA (TODO POWIĄZANA ZE ZLECENIEM) ----------
+
+// pobranie zadań dla zlecenia
+async function loadTodosForOrder(orderNum){
+    if(!orderNum) return;
+    const { data, error } = await supabaseClient
+        .from("todos")
+        .select("*")
+        .eq("order_number", orderNum)
+        .order("created_at", { ascending: true });
+
+    if(error){
+        console.log("Błąd ładowania TODO:", error);
+        return;
+    }
+
+    todos = data || [];
+    renderTodos();
+}
+
+// render listy
+function renderTodos(){
+    const list = document.getElementById("todoList");
+    if(!list) return;
+    list.innerHTML = "";
+
+    todos.forEach((t, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            <input type="checkbox" ${t.done ? "checked" : ""} 
+                   onchange="toggleTodoDone(${i}, this.checked)">
+            <span style="${t.done ? "text-decoration: line-through; color: gray;" : ""}">
+                ${t.text}
+            </span>
+            <button class="small-btn" onclick="deleteTodo(${i})">Usuń</button>
+        `;
+        list.appendChild(li);
+    });
+}
+
+// dodanie zadania
+async function addTodo(){
+    const input = document.getElementById("todoText");
+    const text = input.value.trim();
+    if(!text) return;
+
+    const orderNum = orderNumber;
+    if(!orderNum){
+        alert("Brak numeru zlecenia");
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("todos")
+        .insert([{ order_number: orderNum, text, done: false }])
+        .select();
+
+    if(error){
+        console.log("Błąd dodawania TODO:", error);
+        alert("Błąd dodawania zadania");
+        return;
+    }
+
+    todos.push(data[0]);
+    renderTodos();
+    input.value = "";
+}
+
+// zmiana statusu
+async function toggleTodoDone(index, checked){
+    const todo = todos[index];
+    if(!todo) return;
+
+    const { error } = await supabaseClient
+        .from("todos")
+        .update({ done: checked })
+        .eq("id", todo.id);
+
+    if(error){
+        console.log("Błąd aktualizacji TODO:", error);
+        alert("Błąd aktualizacji zadania");
+        renderTodos();
+        return;
+    }
+
+    todos[index].done = checked;
+    renderTodos();
+}
+
+// usuwanie
+async function deleteTodo(index){
+    const todo = todos[index];
+    if(!todo) return;
+
+    const { error } = await supabaseClient
+        .from("todos")
+        .delete()
+        .eq("id", todo.id);
+
+    if(error){
+        console.log("Błąd usuwania TODO:", error);
+        alert("Błąd usuwania zadania");
+        return;
+    }
+
+    todos.splice(index, 1);
+    renderTodos();
+}
+
 // ---------- KM ----------
 function addKm(){
     const km=parseFloat(document.getElementById("kmInput").value);
@@ -551,8 +661,6 @@ async function saveOrder(){
     alert("Zlecenie zapisane w bazie");
     clearForm();
     renderOrders();
-    todos = [];
-    renderTodos();
 }
 
 // ---------- UPDATE ISTNIEJĄCEGO ZLECENIA ----------
@@ -597,8 +705,8 @@ async function updateOrder(){
 
 // ---------- RESET FORMULARZA ----------
 function clearForm(){
-    dailyHours=[]; parts=[]; travels=[]; activities=[];
-    renderHours(); renderParts(); renderKm(); renderActivities();
+    dailyHours=[]; parts=[]; travels=[]; activities=[]; todos=[];
+    renderHours(); renderParts(); renderKm(); renderActivities(); renderTodos();
     document.getElementById("clientName").value="";
     document.getElementById("clientPhone").value="";
     document.getElementById("deviceName").value="";
@@ -631,126 +739,28 @@ async function renderOrders(){
         <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
         <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
         list.appendChild(div);
-
-        // ===== LISTA DO ZROBIENIA POWIĄZANA ZE ZLECENIEM =====
-
-// pobranie zadań dla bieżącego numeru zlecenia
-async function loadTodosForOrder(orderNum){
-    if(!orderNum) return;
-    const { data, error } = await supabaseClient
-        .from("todos")
-        .select("*")
-        .eq("order_number", orderNum)
-        .order("created_at", { ascending: true });
-
-    if(error){
-        console.log("Błąd ładowania TODO:", error);
-        return;
-    }
-
-    todos = data || [];
-    renderTodos();
-}
-
-// render listy na ekranie
-function renderTodos(){
-    const list = document.getElementById("todoList");
-    if(!list) return; // gdy jesteśmy na innej zakładce
-    list.innerHTML = "";
-
-    todos.forEach((t, i) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="checkbox" ${t.done ? "checked" : ""} 
-                   onchange="toggleTodoDone(${i}, this.checked)">
-            <span style="${t.done ? "text-decoration: line-through; color: gray;" : ""}">
-                ${t.text}
-            </span>
-            <button class="small-btn" onclick="deleteTodo(${i})">Usuń</button>
-        `;
-        list.appendChild(li);
-    });
-}
-
-// dodanie zadania
-async function addTodo(){
-    const input = document.getElementById("todoText");
-    const text = input.value.trim();
-    if(!text) return;
-
-    // bieżący numer zlecenia z widoku
-    const orderNum = orderNumber;
-    if(!orderNum){
-        alert("Brak numeru zlecenia");
-        return;
-    }
-
-    const { data, error } = await supabaseClient
-        .from("todos")
-        .insert([{ order_number: orderNum, text, done: false }])
-        .select();
-
-    if(error){
-        console.log("Błąd dodawania TODO:", error);
-        alert("Błąd dodawania zadania");
-        return;
-    }
-
-    // Supabase zwraca nowy rekord – dokładamy go do listy
-    todos.push(data[0]);
-    renderTodos();
-    input.value = "";
-}
-
-// zaznaczenie / odznaczenie
-async function toggleTodoDone(index, checked){
-    const todo = todos[index];
-    if(!todo) return;
-
-    const { error } = await supabaseClient
-        .from("todos")
-        .update({ done: checked })
-        .eq("id", todo.id);
-
-    if(error){
-        console.log("Błąd aktualizacji TODO:", error);
-        alert("Błąd aktualizacji zadania");
-        // cofnięcie zmiany w UI
-        renderTodos();
-        return;
-    }
-
-    todos[index].done = checked;
-    renderTodos();
-}
-
-// usuwanie zadania
-async function deleteTodo(index){
-    const todo = todos[index];
-    if(!todo) return;
-
-    const { error } = await supabaseClient
-        .from("todos")
-        .delete()
-        .eq("id", todo.id);
-
-    if(error){
-        console.log("Błąd usuwania TODO:", error);
-        alert("Błąd usuwania zadania");
-        return;
-    }
-
-    todos.splice(index, 1);
-    renderTodos();
-}
     });
 
     updateClientsSuggestions();
 }
 
-function showOrder(num){
+async function showOrder(num){
     const o=orders.find(x=>x.order_number===num);
     if(!o) return;
+
+    // pobierz TODO z Supabase dla tego zlecenia, żeby pokazać w historii
+    const { data: todosData, error: todosError } = await supabaseClient
+        .from("todos")
+        .select("*")
+        .eq("order_number", num)
+        .order("created_at", { ascending: true });
+
+    if(todosError){
+        console.log("Błąd ładowania TODO do historii:", todosError);
+    }
+
+    const todosHistory = todosData || [];
+
     const div=document.getElementById("orderDetails");
     div.innerHTML=`
     <h3>${o.order_number}</h3>
@@ -762,17 +772,17 @@ function showOrder(num){
     ${Array.isArray(o.parts)?o.parts.map(p=>`${p.name} ${p.qty} x ${p.price} zl`).join("<br>"):""}
     <h4>Wykonane czynnosci</h4>
     ${Array.isArray(o.activities)?o.activities.map(a=>`- ${a}`).join("<br>"):""}
+    <h4>Lista do zrobienia</h4>
+    ${todosHistory.length ? todosHistory.map(t => `${t.done ? "✅" : "⬜"} ${t.text}`).join("<br>") : "Brak zadań"}
     <h4>Godziny</h4>
     ${Array.isArray(o.hours)?o.hours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
     <h4>Dojazd</h4>
     ${Array.isArray(o.travels)?o.travels.map(k=>`${k} km`).join("<br>"):""}
     <h3>Razem: ${o.total} zl</h3>
-    setEditMode(true);
-    loadTodosForOrder(orderNumber); // lub num, bo to to samo
     `;
 }
 
-function editOrder(num){
+async function editOrder(num){
     const o=orders.find(x=>x.order_number===num);
     if(!o) return;
 
@@ -798,6 +808,9 @@ function editOrder(num){
     renderKm();
     renderActivities();
     calculate();
+
+    // załaduj TODO dla tego zlecenia do formularza
+    await loadTodosForOrder(orderNumber);
 
     setEditMode(true);
 }
@@ -872,7 +885,6 @@ function updateClientsSuggestions(){
 
 // ---------- MAGAZYN (Supabase) ----------
 
-// wczytanie magazynu przy starcie
 async function loadWarehouse(){
     const { data, error } = await supabaseClient
         .from("warehouse")
@@ -888,7 +900,6 @@ async function loadWarehouse(){
     updatePartsSuggestions();
 }
 
-// dodanie nowej pozycji
 async function addWarehouse(){
     const name = document.getElementById("whName").value;
     const number = document.getElementById("whNumber").value;
@@ -921,7 +932,6 @@ async function addWarehouse(){
     loadWarehouse();
 }
 
-// edycja pól name/number/qty/price
 async function editWarehouseItem(index, field, value){
     const item = warehouse[index];
     if(!item) return;
@@ -953,7 +963,6 @@ async function editWarehouseItem(index, field, value){
     updatePartsSuggestions();
 }
 
-// zmiana ilości +/- 1
 async function changeWarehouseQty(index, delta){
     const item = warehouse[index];
     if(!item) return;
@@ -975,7 +984,6 @@ async function changeWarehouseQty(index, delta){
     renderWarehouse();
 }
 
-// usunięcie pozycji
 async function removeWarehouse(index){
     const item = warehouse[index];
     if(!item) return;
@@ -1074,7 +1082,6 @@ async function applyWarehouseUsage(partsUsed){
 
 // ---------- PDF ----------
 
-// funkcja do usuwania polskich znakow z dowolnego tekstu
 function stripPolishChars(text){
     if(!text) return "";
     const map = {
@@ -1102,7 +1109,6 @@ function generatePDF(){
 
     let yPos = 25;
 
-    // naglowek
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
     doc.text("PROTOKOL NAPRAWY", 105, yPos, {align: 'center'});
@@ -1115,7 +1121,6 @@ function generatePDF(){
     doc.setTextColor(0);
     yPos += 15;
 
-    // dane klienta w ramce
     doc.setDrawColor(180);
     doc.setFillColor(248, 250, 252);
     doc.rect(15, yPos-6, 180, 28, 'FD');
@@ -1134,7 +1139,6 @@ function generatePDF(){
     doc.text("Maszyna/Urzadzenie: " + deviceName, 20, yPos);
     yPos += 12;
 
-    // tabela czesci
     if(parts.length > 0){
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
@@ -1177,7 +1181,6 @@ function generatePDF(){
         yPos = doc.lastAutoTable.finalY + 10;
     }
 
-    // wykonane czynnosci
     const cleanActivities = activities.map(a => stripPolishChars(a));
     if(cleanActivities.length > 0){
         doc.setFontSize(12);
@@ -1201,7 +1204,6 @@ function generatePDF(){
         yPos += 8;
     }
 
-    // koszty w tabeli
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text("Koszty", 20, yPos);
@@ -1231,7 +1233,6 @@ function generatePDF(){
 
     yPos = doc.lastAutoTable.finalY + 12;
 
-    // laczna cena w ramce
     doc.setDrawColor(37, 99, 235);
     doc.setFillColor(239, 246, 255);
     doc.setLineWidth(0.8);
@@ -1243,7 +1244,6 @@ function generatePDF(){
     doc.text("LACZNIE: " + totalCost + " zl", 105, yPos, {align: 'center'});
     doc.setTextColor(0);
 
-    // stopka
     yPos = 285;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
