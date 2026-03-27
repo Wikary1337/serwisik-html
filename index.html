@@ -798,6 +798,8 @@ async function showOrder(num){
 
 async function editOrder(num){
     const o = orders.find(x => x.order_number === num);
+    console.log("editOrder, znalezione zlecenie =", o);
+
     if(!o){
         alert("Nie znaleziono zlecenia: " + num);
         return;
@@ -808,9 +810,12 @@ async function editOrder(num){
     currentOrderId = o.id;
     currentOrderNumber = o.order_number;
 
-    document.getElementById("clientName").value = o.client_name || "";
+    // surowe wartości z bazy
+    console.log("client_name:", o.client_name, "client_phone:", o.client_phone, "device_name:", o.device_name);
+
+    document.getElementById("clientName").value  = o.client_name  || "";
     document.getElementById("clientPhone").value = o.client_phone || "";
-    document.getElementById("deviceName").value = o.device_name || "";
+    document.getElementById("deviceName").value  = o.device_name  || "";
 
     orderNumber = o.order_number;
     document.getElementById("orderNumber").innerText = orderNumber;
@@ -820,6 +825,8 @@ async function editOrder(num){
     travels    = normalizeArrayField(o.travels);
     activities = normalizeArrayField(o.activities);
 
+    console.log("po normalizeArrayField:", {dailyHours, parts, travels, activities});
+
     renderHours();
     renderParts();
     renderKm();
@@ -828,8 +835,16 @@ async function editOrder(num){
 
     await loadTodosForOrder(orderNumber);
     setEditMode(true);
-}
 
+    // jeśli po wczytaniu nadal pusto – pokaż alert diagnostyczny
+    if(
+        !document.getElementById("clientName").value &&
+        !document.getElementById("clientPhone").value &&
+        !document.getElementById("deviceName").value
+    ){
+        alert("Rekord ma puste dane klienta dla numeru: " + num);
+    }
+}
 function generatePdfFromHistory(orderNum){
     const o = orders.find(x => x.order_number === orderNum);
     if(!o) return;
