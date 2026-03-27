@@ -782,37 +782,52 @@ async function showOrder(num){
     `;
 }
 
+// EDYCJA ZLECENIA
 async function editOrder(num){
-    const o=orders.find(x=>x.order_number===num);
-    if(!o) return;
+    console.log("editOrder start, num =", num);
+    try{
+        const o = orders.find(x => x.order_number === num);
+        if(!o){
+            alert("Nie znaleziono zlecenia: " + num);
+            return;
+        }
 
-    showTab('order');
+        // przełącz na zakładkę zlecenie
+        showTab('order');
 
-    currentOrderId = o.id;
-    currentOrderNumber = o.order_number;
+        currentOrderId = o.id;
+        currentOrderNumber = o.order_number;
 
-    document.getElementById("clientName").value = o.client_name || "";
-    document.getElementById("clientPhone").value = o.client_phone || "";
-    document.getElementById("deviceName").value = o.device_name || "";
+        // dane klienta
+        document.getElementById("clientName").value = o.client_name || "";
+        document.getElementById("clientPhone").value = o.client_phone || "";
+        document.getElementById("deviceName").value = o.device_name || "";
 
-    orderNumber = o.order_number;
-    document.getElementById("orderNumber").innerText = orderNumber;
+        // numer zlecenia
+        orderNumber = o.order_number;
+        document.getElementById("orderNumber").innerText = orderNumber;
 
-    dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
-    parts = Array.isArray(o.parts) ? [...o.parts] : [];
-    travels = Array.isArray(o.travels) ? [...o.travels] : [];
-    activities = Array.isArray(o.activities) ? [...o.activities] : [];
+        // godziny / części / dojazd / czynności
+        dailyHours = Array.isArray(o.hours) ? [...o.hours] : [];
+        parts      = Array.isArray(o.parts) ? [...o.parts] : [];
+        travels    = Array.isArray(o.travels) ? [...o.travels] : [];
+        activities = Array.isArray(o.activities) ? [...o.activities] : [];
 
-    renderHours();
-    renderParts();
-    renderKm();
-    renderActivities();
-    calculate();
+        renderHours();
+        renderParts();
+        renderKm();
+        renderActivities();
+        calculate();
 
-    // załaduj TODO dla tego zlecenia do formularza
-    await loadTodosForOrder(orderNumber);
+        // TODO dla tego zlecenia
+        await loadTodosForOrder(orderNumber);
+        setEditMode(true);
 
-    setEditMode(true);
+        console.log("editOrder OK");
+    }catch(e){
+        console.error("editOrder exception:", e);
+        alert("Błąd wczytywania zlecenia do edycji: " + e.message);
+    }
 }
 
 // tworzenie PDF z historii
