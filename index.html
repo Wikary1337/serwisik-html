@@ -785,6 +785,8 @@ async function showOrder(num){
 // EDYCJA ZLECENIA
 async function editOrder(num){
     console.log("editOrder start, num =", num);
+    console.log("orders array =", orders);
+    console.log("editOrder start, num =", num);
     try{
         const o = orders.find(x => x.order_number === num);
         if(!o){
