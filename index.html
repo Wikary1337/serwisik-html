@@ -23,7 +23,7 @@ body{
     padding:30px;
 }
 .container{
-    max-width:900px;
+    max-width:1000px;
     margin:auto;
     background:white;
     padding:20px;
@@ -87,10 +87,13 @@ button:active{
 }
 .tabs{
     margin-bottom:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
 }
 .tabs button{
     width:auto;
-    margin-right:8px;
+    margin-right:0;
     margin-top:0;
     background:#e5e7eb;
     color:#111827;
@@ -141,6 +144,18 @@ li{
 #ordersList .card:hover{
     background:#eef2ff;
     transform:translateY(-1px);
+}
+.section-note{
+    font-size:13px;
+    color:#6b7280;
+    margin-top:6px;
+}
+.total-box{
+    background:#eef6ff;
+    border:1px solid #bfdbfe;
+    padding:12px;
+    border-radius:8px;
+    margin-top:10px;
 }
 @media (max-width:600px){
     body{
@@ -212,7 +227,7 @@ li{
 
 <div class="card">
 <h3>Czas pracy</h3>
-<input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
+<input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa" oninput="calculate()">
 <input type="date" id="workDate">
 <input type="number" id="hoursInput" placeholder="Godziny">
 <button onclick="addHours()">Dodaj godziny</button>
@@ -224,7 +239,7 @@ li{
 <div class="card">
 <h3>Dojazd</h3>
 <input id="kmInput" type="number" placeholder="Kilometry">
-<input id="kmRate" type="number" value="1" placeholder="Stawka za km">
+<input id="kmRate" type="number" value="1" placeholder="Stawka za km" oninput="calculate()">
 <button onclick="addKm()">Dodaj kilometry</button>
 <ul id="kmList"></ul>
 <p>Koszt dojazdu: <span id="travelCost">0</span> zł</p>
@@ -263,41 +278,44 @@ li{
 <ul id="warehouseList"></ul>
 </div>
 
-  <!-- ================= KOSZTORYS ================= -->
+<!-- ================= KOSZTORYS ================= -->
 <div id="estimate" style="display:none">
-    <h2>Kosztorys naprawy</h2>
+<h2>Kosztorys</h2>
 
-    <div class="card">
-        <h3>Części do kosztorysu</h3>
-        <input id="estPartName" placeholder="Nazwa części">
-        <input id="estPartNumber" placeholder="Numer części">
-        <input id="estPartPrice" type="number" placeholder="Cena">
-        <input id="estPartQty" type="number" value="1" placeholder="Ilość">
-        <button onclick="addEstimatePart()">Dodaj część</button>
-        <ul id="estimatePartsList"></ul>
-        <p>Suma części: <span id="estimatePartsCost">0</span> zł</p>
-    </div>
+<div class="card">
+    <h3>Części do kosztorysu</h3>
+    <input id="estPartName" placeholder="Nazwa części">
+    <input id="estPartNumber" placeholder="Numer części">
+    <input id="estPartPrice" type="number" placeholder="Cena">
+    <input id="estPartQty" type="number" value="1" placeholder="Ilość">
+    <button onclick="addEstimatePart()">Dodaj część</button>
+    <ul id="estimatePartsList"></ul>
+    <p>Suma części: <span id="estimatePartsCost">0</span> zł</p>
+</div>
 
-    <div class="card">
-        <h3>Zakres czynności</h3>
-        <textarea id="estTaskText" placeholder="Np. diagnostyka, demontaż, wymiana uszkodzonego elementu, test końcowy"></textarea>
-        <button onclick="addEstimateTask()">Dodaj czynność</button>
-        <ul id="estimateTasksList"></ul>
-    </div>
+<div class="card">
+    <h3>Zakres czynności</h3>
+    <textarea id="estTaskText" placeholder="Np. diagnostyka, demontaż, wymiana, test końcowy"></textarea>
+    <button onclick="addEstimateTask()">Dodaj czynność</button>
+    <ul id="estimateTasksList"></ul>
+</div>
 
-    <div class="card">
-        <h3>Cena usługi</h3>
-        <input id="estServicePrice" type="number" value="0" placeholder="Cena za wykonaną usługę">
-    </div>
+<div class="card">
+    <h3>Cena usługi</h3>
+    <input id="estServicePrice" type="number" value="0" placeholder="Cena za wykonaną usługę" oninput="calculateEstimate()">
+    <p class="section-note">Po zmianie tej wartości kosztorys przelicza się od razu.</p>
+</div>
 
-    <div class="card">
-        <h3>Podsumowanie kosztorysu</h3>
+<div class="card">
+    <h3>Podsumowanie kosztorysu</h3>
+    <div class="total-box">
         <p>Części: <span id="estimateSummaryParts">0</span> zł</p>
         <p>Usługa: <span id="estimateSummaryService">0</span> zł</p>
         <p><strong>Razem: <span id="estimateTotal">0</span> zł</strong></p>
     </div>
 </div>
-  
+</div>
+
 </div> <!-- container -->
 
 <script>
@@ -309,13 +327,12 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
 let todos = [];
+let estimateParts = [];
+let estimateTasks = [];
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
-let estimateParts = [];
-let estimateTasks = [];
 
-// pomocniczo: normalizacja pól, które mogą być JSON-em w stringu
 function normalizeArrayField(value){
     if (!value) return [];
     if (Array.isArray(value)) return value;
@@ -328,10 +345,8 @@ function normalizeArrayField(value){
     }
 }
 
-// inicjalizacja numeru zlecenia
 initOrderNumber();
 
-// ----------------- FUNKCJE POMOCNICZE -----------------
 async function generateOrderNumber(){
     const now = new Date();
     const y = now.getFullYear();
@@ -375,19 +390,14 @@ function setEditMode(isEdit){
 
 // ----------------- FUNKCJE OGÓLNE -----------------
 function showTab(tab){
-    document.getElementById("order").style.display = "none";
-    document.getElementById("history").style.display = "none";
-    document.getElementById("warehouse").style.display = "none";
-
-    const estimateEl = document.getElementById("estimate");
-    if(estimateEl){
-        estimateEl.style.display = "none";
-    }
-
-    document.getElementById(tab).style.display = "block";
+    document.getElementById("order").style.display="none";
+    document.getElementById("history").style.display="none";
+    document.getElementById("warehouse").style.display="none";
+    document.getElementById("estimate").style.display="none";
+    document.getElementById(tab).style.display="block";
 }
+window.showTab = showTab;
 
-// ---------- AUTO-UZUPEŁNIANIE DANYCH KLIENTA ----------
 function fillClientData(){
     const nameInput = document.getElementById("clientName").value.trim();
     if(!nameInput) return;
@@ -402,7 +412,6 @@ function fillClientData(){
     }
 }
 
-// ---------- AUTO-CENA CZĘŚCI Z MAGAZYNU ----------
 async function fillPartPriceFromWarehouse(){
     const partInput = document.getElementById("partName").value.trim();
     if(!partInput) return;
@@ -854,9 +863,6 @@ async function editOrder(num){
     currentOrderId = o.id;
     currentOrderNumber = o.order_number;
 
-    // surowe wartości z bazy
-    console.log("client_name:", o.client_name, "client_phone:", o.client_phone, "device_name:", o.device_name);
-
     document.getElementById("clientName").value  = o.client_name  || "";
     document.getElementById("clientPhone").value = o.client_phone || "";
     document.getElementById("deviceName").value  = o.device_name  || "";
@@ -869,8 +875,6 @@ async function editOrder(num){
     travels    = normalizeArrayField(o.travels);
     activities = normalizeArrayField(o.activities);
 
-    console.log("po normalizeArrayField:", {dailyHours, parts, travels, activities});
-
     renderHours();
     renderParts();
     renderKm();
@@ -879,16 +883,8 @@ async function editOrder(num){
 
     await loadTodosForOrder(orderNumber);
     setEditMode(true);
-
-    // jeśli po wczytaniu nadal pusto – pokaż alert diagnostyczny
-    if(
-        !document.getElementById("clientName").value &&
-        !document.getElementById("clientPhone").value &&
-        !document.getElementById("deviceName").value
-    ){
-        alert("Rekord ma puste dane klienta dla numeru: " + num);
-    }
 }
+
 function generatePdfFromHistory(orderNum){
     const o = orders.find(x => x.order_number === orderNum);
     if(!o) return;
@@ -912,7 +908,6 @@ function generatePdfFromHistory(orderNum){
     generatePDF();
 }
 
-// ---------- USUWANIE ZLECENIA ----------
 async function deleteOrder(id){
     if(!id) return;
     if(!confirm("Czy na pewno chcesz usunac to zlecenie?")) return;
@@ -936,7 +931,6 @@ async function deleteOrder(id){
     renderOrders();
 }
 
-// ---------- PODPOWIEDZI KLIENTÓW ----------
 function updateClientsSuggestions(){
     const datalist = document.getElementById("clientsList");
     if(!datalist) return;
@@ -1106,7 +1100,6 @@ function renderWarehouse(){
     });
 }
 
-// ---------- PODPOWIEDZI CZĘŚCI Z MAGAZYNU ----------
 function updatePartsSuggestions(){
     const datalist = document.getElementById("partsList");
     if(!datalist) return;
@@ -1122,7 +1115,6 @@ function updatePartsSuggestions(){
     });
 }
 
-// ---------- AUTOMATYCZNE ZUŻYCIE MAGAZYNU ----------
 async function applyWarehouseUsage(partsUsed){
     if(!Array.isArray(partsUsed) || partsUsed.length === 0) return;
 
@@ -1154,7 +1146,8 @@ async function applyWarehouseUsage(partsUsed){
     renderWarehouse();
 }
 
-  function addEstimatePart(){
+// ---------- KOSZTORYS ----------
+function addEstimatePart(){
     const name = document.getElementById("estPartName").value.trim();
     const number = document.getElementById("estPartNumber").value.trim();
     const price = parseFloat(document.getElementById("estPartPrice").value);
@@ -1258,7 +1251,6 @@ function calculateEstimate(){
     document.getElementById("estimateSummaryService").innerText = servicePrice.toFixed(2);
     document.getElementById("estimateTotal").innerText = total.toFixed(2);
 }
-
 
 // ---------- PDF ----------
 function stripPolishChars(text){
@@ -1432,20 +1424,12 @@ function generatePDF(){
 
     doc.save("zlecenie_" + stripPolishChars(orderNumber) + ".pdf");
 }
-  
-function calculateEstimate(){
-    const partsCost = estimateParts.reduce((sum, p) => sum + ((p.price || 0) * (p.qty || 0)), 0);
-    const servicePrice = parseFloat(document.getElementById("estServicePrice").value || "0");
-    const total = partsCost + servicePrice;
-
-    document.getElementById("estimatePartsCost").innerText = partsCost.toFixed(2);
-    document.getElementById("estimateSummaryParts").innerText = partsCost.toFixed(2);
-    document.getElementById("estimateSummaryService").innerText = servicePrice.toFixed(2);
-    document.getElementById("estimateTotal").innerText = total.toFixed(2);
-}
-
-document.getElementById("estServicePrice").addEventListener("input", calculateEstimate);
 
 // ---------- START ----------
 renderOrders();
 loadWarehouse();
+calculate();
+calculateEstimate();
+</script>
+</body>
+</html>
