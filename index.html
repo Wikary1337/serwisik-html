@@ -375,11 +375,16 @@ function setEditMode(isEdit){
 
 // ----------------- FUNKCJE OGÓLNE -----------------
 function showTab(tab){
-    document.getElementById("order").style.display="none";
-    document.getElementById("history").style.display="none";
-    document.getElementById("warehouse").style.display="none";
-    document.getElementById("estimate").style.display="none";
-    document.getElementById(tab).style.display="block";
+    document.getElementById("order").style.display = "none";
+    document.getElementById("history").style.display = "none";
+    document.getElementById("warehouse").style.display = "none";
+
+    const estimateEl = document.getElementById("estimate");
+    if(estimateEl){
+        estimateEl.style.display = "none";
+    }
+
+    document.getElementById(tab).style.display = "block";
 }
 
 // ---------- AUTO-UZUPEŁNIANIE DANYCH KLIENTA ----------
