@@ -283,6 +283,13 @@ li{
 <h2>Kosztorys</h2>
 
 <div class="card">
+    <h3>Dane klienta do kosztorysu</h3>
+    <input id="estClientName" placeholder="Imię i nazwisko klienta">
+    <input id="estClientPhone" placeholder="Telefon">
+    <input id="estDeviceName" placeholder="Maszyna/Urządzenie">
+</div>
+
+<div class="card">
     <h3>Części do kosztorysu</h3>
     <input id="estPartName" placeholder="Nazwa części">
     <input id="estPartNumber" placeholder="Numer części">
@@ -303,18 +310,9 @@ li{
 <div class="card">
     <h3>Cena usługi</h3>
     <input id="estServicePrice" type="number" value="0" placeholder="Cena za wykonaną usługę" oninput="calculateEstimate()">
-    <p class="section-note">Po zmianie tej wartości kosztorys przelicza się od razu.</p>
 </div>
 
 <div class="card">
-    <h3>Podsumowanie kosztorysu</h3>
-    <div class="total-box">
-        <p>Części: <span id="estimateSummaryParts">0</span> zł</p>
-        <p>Usługa: <span id="estimateSummaryService">0</span> zł</p>
-        <p><strong>Razem: <span id="estimateTotal">0</span> zł</strong></p>
-    </div>
-    
-    <div class="card">
     <h3>Podsumowanie kosztorysu</h3>
     <div class="total-box">
         <p>Części: <span id="estimateSummaryParts">0</span> zł</p>
@@ -325,8 +323,6 @@ li{
     <div class="summary-actions">
         <button onclick="saveEstimate()">Zapisz kosztorys</button>
     </div>
-</div>
-</div>
 </div>
 
 </div> <!-- container -->
@@ -1266,15 +1262,15 @@ function calculateEstimate(){
     document.getElementById("estimateTotal").innerText = total.toFixed(2);
 }
     
-    async function saveEstimate(){
-    const clientName = document.getElementById("clientName").value.trim();
-    const clientPhone = document.getElementById("clientPhone").value.trim();
-    const deviceName = document.getElementById("deviceName").value.trim();
+   async function saveEstimate(){
+    const clientName = document.getElementById("estClientName").value.trim();
+    const clientPhone = document.getElementById("estClientPhone").value.trim();
+    const deviceName = document.getElementById("estDeviceName").value.trim();
     const servicePrice = parseFloat(document.getElementById("estServicePrice").value || "0");
     const total = parseFloat(document.getElementById("estimateTotal").innerText || "0");
 
     if(!clientName){
-        alert("Najpierw wpisz nazwę klienta w zakładce Zlecenie");
+        alert("Wpisz nazwę klienta w formularzu kosztorysu");
         return;
     }
 
