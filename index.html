@@ -313,6 +313,19 @@ li{
         <p>Usługa: <span id="estimateSummaryService">0</span> zł</p>
         <p><strong>Razem: <span id="estimateTotal">0</span> zł</strong></p>
     </div>
+    
+    <div class="card">
+    <h3>Podsumowanie kosztorysu</h3>
+    <div class="total-box">
+        <p>Części: <span id="estimateSummaryParts">0</span> zł</p>
+        <p>Usługa: <span id="estimateSummaryService">0</span> zł</p>
+        <p><strong>Razem: <span id="estimateTotal">0</span> zł</strong></p>
+    </div>
+
+    <div class="summary-actions">
+        <button onclick="saveEstimate()">Zapisz kosztorys</button>
+    </div>
+</div>
 </div>
 </div>
 
@@ -332,7 +345,8 @@ let estimateTasks = [];
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
-
+let currentEstimateId = null;
+    
 function normalizeArrayField(value){
     if (!value) return [];
     if (Array.isArray(value)) return value;
@@ -1250,6 +1264,47 @@ function calculateEstimate(){
     document.getElementById("estimateSummaryParts").innerText = partsCost.toFixed(2);
     document.getElementById("estimateSummaryService").innerText = servicePrice.toFixed(2);
     document.getElementById("estimateTotal").innerText = total.toFixed(2);
+}
+    
+    async function saveEstimate(){
+    const clientName = document.getElementById("clientName").value.trim();
+    const clientPhone = document.getElementById("clientPhone").value.trim();
+    const deviceName = document.getElementById("deviceName").value.trim();
+    const servicePrice = parseFloat(document.getElementById("estServicePrice").value || "0");
+    const total = parseFloat(document.getElementById("estimateTotal").innerText || "0");
+
+    if(!clientName){
+        alert("Najpierw wpisz nazwę klienta w zakładce Zlecenie");
+        return;
+    }
+
+    if(estimateParts.length === 0 && estimateTasks.length === 0 && servicePrice <= 0){
+        alert("Kosztorys jest pusty");
+        return;
+    }
+
+    const estimate = {
+        order_number: orderNumber,
+        client_name: clientName,
+        client_phone: clientPhone,
+        device_name: deviceName,
+        parts: [...estimateParts],
+        tasks: [...estimateTasks],
+        service_price: servicePrice,
+        total: total
+    };
+
+    const { error } = await supabaseClient
+        .from("estimates")
+        .insert([estimate]);
+
+    if(error){
+        console.log("Estimate save error", error);
+        alert("Błąd zapisu kosztorysu");
+        return;
+    }
+
+    alert("Kosztorys zapisany");
 }
 
 // ---------- PDF ----------
