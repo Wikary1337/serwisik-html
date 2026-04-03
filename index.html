@@ -1,1291 +1,880 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<title>System Serwisowy</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serwis Naprawczy PRO</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef3f8;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d7e0ea;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #15803d;
+      --warning: #b45309;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+    }
 
-<!-- jsPDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- jsPDF AutoTable -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, #e8f1fb 0%, var(--bg) 160px);
+      color: var(--text);
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .header {
+      background: linear-gradient(135deg, #0f766e, #2563eb);
+      color: #fff;
+      padding: 24px;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .header h1 { margin: 0 0 6px; font-size: 32px; }
+    .header p { margin: 0; opacity: .95; }
 
-<style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-}
-body{
-    font-family:Arial, sans-serif;
-    background:#f3f3f3;
-    padding:30px;
-}
-.container{
-    max-width:900px;
-    margin:auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.05);
-}
-h1{
-    margin-bottom:10px;
-}
-h2{
-    margin-top:10px;
-}
-input, button, textarea{
-    font-family:inherit;
-}
-input, textarea{
-    width:100%;
-    padding:8px 10px;
-    margin-top:6px;
-    border:1px solid #ccc;
-    border-radius:4px;
-}
-input:focus, textarea:focus{
-    outline:none;
-    border-color:#2563eb;
-    box-shadow:0 0 0 1px rgba(37,99,235,0.3);
-}
-textarea{
-    resize:vertical;
-    min-height:60px;
-}
-button{
-    padding:10px 16px;
-    margin-top:10px;
-    border:none;
-    border-radius:4px;
-    background:#2563eb;
-    color:#fff;
-    cursor:pointer;
-    font-weight:600;
-    transition:background 0.15s ease, transform 0.05s ease;
-}
-button:hover{
-    background:#1d4ed8;
-}
-button:active{
-    transform:scale(0.98);
-}
-.card{
-    border:1px solid #e5e7eb;
-    padding:16px;
-    margin-top:18px;
-    border-radius:8px;
-    background:#f9fafb;
-}
-.card h3{
-    margin-bottom:6px;
-}
-.card p{
-    margin-top:6px;
-}
-.tabs{
-    margin-bottom:10px;
-}
-.tabs button{
-    width:auto;
-    margin-right:8px;
-    margin-top:0;
-    background:#e5e7eb;
-    color:#111827;
-    font-weight:500;
-}
-.tabs button:hover{
-    background:#d1d5db;
-}
-.small-btn{
-    width:auto;
-    padding:4px 8px;
-    margin-left:4px;
-    margin-top:0;
-    font-size:12px;
-}
-.inline-input{
-    width:160px;
-    padding:4px 6px;
-    margin-top:0;
-    margin-right:4px;
-}
-.inline-qty{
-    width:70px;
-    padding:4px 6px;
-    margin-top:0;
-    margin-right:4px;
-}
-ul{
-    list-style:none;
-    margin-top:8px;
-}
-li{
-    margin-bottom:6px;
-}
-.summary-actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:10px;
-}
-.summary-actions button{
-    flex:1 1 180px;
-}
-#ordersList .card{
-    cursor:pointer;
-    transition:background 0.15s ease, transform 0.05s ease;
-}
-#ordersList .card:hover{
-    background:#eef2ff;
-    transform:translateY(-1px);
-}
-@media (max-width:600px){
-    body{
-        padding:10px;
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
     }
-    .container{
-        padding:12px;
+    .tab-btn {
+      border: 0;
+      background: #fff;
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow);
     }
-    .card{
-        padding:12px;
+    .tab-btn.active { background: var(--primary); color: #fff; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 18px;
     }
-    .inline-input{
-        width:120px;
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 22px;
     }
-}
-</style>
+    .card h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .grid { display: grid; gap: 14px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; color: var(--muted); font-weight: 700; }
+    .field input, .field textarea, .field select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      background: #fff;
+    }
+    .field textarea { min-height: 110px; resize: vertical; }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-light { background: var(--surface-2); color: var(--text); }
+
+    .inline-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+
+    .list { display: grid; gap: 10px; margin-top: 14px; }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      border: 1px solid var(--border);
+      background: #fbfdff;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .item-main { flex: 1; }
+    .item-title { font-weight: 800; }
+    .item-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+    .item-price { font-weight: 800; white-space: nowrap; }
+    .item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .summary {
+      background: #f0fdf4;
+      border: 1px solid #cce9d3;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 0;
+    }
+    .summary-total {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--success);
+      border-top: 1px solid #cce9d3;
+      margin-top: 10px;
+      padding-top: 12px;
+    }
+
+    .muted { color: var(--muted); }
+    .empty {
+      padding: 18px;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      color: var(--muted);
+      background: #fafcff;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e6fffb;
+      color: #115e59;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
+      .item { flex-direction: column; align-items: stretch; }
+      .summary-row { font-size: 14px; }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="container">
+    <header class="header">
+      <h1>🛠️ Serwis Naprawczy PRO</h1>
+      <p id="orderNumberView">Numer zlecenia: —</p>
+    </header>
 
-<div class="container">
-<h1>System Serwisowy</h1>
+    <nav class="tabs" aria-label="Zakładki aplikacji">
+      <button class="tab-btn active" data-tab="order">📋 Zlecenie</button>
+      <button class="tab-btn" data-tab="history">📚 Historia</button>
+      <button class="tab-btn" data-tab="warehouse">📦 Magazyn</button>
+      <button class="tab-btn" data-tab="estimate">🧾 Kosztorys</button>
+    </nav>
 
-<div class="tabs">
-<button onclick="showTab('order')">Zlecenie</button>
-<button onclick="showTab('history')">Historia</button>
-<button onclick="showTab('warehouse')">Magazyn</button>
-</div>
+    <section id="tab-order" class="tab-content active">
+      <div class="card">
+        <h2>Dane podstawowe</h2>
+        <div class="grid grid-3">
+          <div class="field">
+            <label for="clientName">Imię i nazwisko</label>
+            <input id="clientName" type="text" placeholder="Jan Kowalski" />
+          </div>
+          <div class="field">
+            <label for="clientPhone">Telefon</label>
+            <input id="clientPhone" type="text" placeholder="600700800" />
+          </div>
+          <div class="field">
+            <label for="deviceName">Urządzenie / maszyna</label>
+            <input id="deviceName" type="text" placeholder="Np. myjka ciśnieniowa" />
+          </div>
+        </div>
+      </div>
 
-<!-- ================= ZLECENIE ================= -->
-<div id="order">
-<div class="card">
-<h3>Dane klienta</h3>
-<input id="clientName" placeholder="Imię i nazwisko" list="clientsList" oninput="fillClientData()">
-<datalist id="clientsList"></datalist>
-<input id="clientPhone" placeholder="Telefon">
-<input id="deviceName" placeholder="Maszyna/Urządzenie">
-<p>Numer zlecenia: <span id="orderNumber"></span></p>
-<p id="editInfo" style="color:red; display:none; margin-top:4px;">Tryb edycji istniejącego zlecenia</p>
-</div>
+      <div class="card">
+        <h2>Stawki</h2>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="laborRate">Stawka za godzinę (zł)</label>
+            <input id="laborRate" type="number" min="0" step="0.01" value="120" />
+          </div>
+          <div class="field">
+            <label for="kmRate">Stawka za kilometr (zł)</label>
+            <input id="kmRate" type="number" min="0" step="0.01" value="1.5" />
+          </div>
+        </div>
+      </div>
 
-<div class="card">
-<h3>Części</h3>
-<input id="partName" placeholder="Nazwa części" list="partsList" oninput="fillPartPriceFromWarehouse()">
-<datalist id="partsList"></datalist>
-<input id="partPrice" type="number" placeholder="Cena">
-<input id="partQty" type="number" value="1" placeholder="Ilość">
-<button onclick="addPart()">Dodaj część</button>
-<ul id="partsListUl"></ul>
-<p>Suma części: <span id="partsCost">0</span> zł</p>
-</div>
+      <div class="card">
+        <h2>Czas pracy</h2>
+        <div class="grid grid-4">
+          <div class="field">
+            <label for="workDate">Data</label>
+            <input id="workDate" type="date" />
+          </div>
+          <div class="field">
+            <label for="workHours">Liczba godzin</label>
+            <input id="workHours" type="number" min="0" step="0.5" value="1" />
+          </div>
+          <div class="field">
+            <label>Koszt dnia</label>
+            <input id="workCostPreview" type="text" readonly value="0.00 zł" />
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="addWorkBtn" type="button">Dodaj czas</button>
+          </div>
+        </div>
+        <div id="workList" class="list"></div>
+        <div class="summary">
+          <div class="summary-row"><span>Suma godzin</span><strong id="workHoursTotal">0 h</strong></div>
+          <div class="summary-row"><span>Koszt pracy</span><strong id="laborTotal">0.00 zł</strong></div>
+        </div>
+      </div>
 
-<div class="card">
-<h3>Wykonane czynności</h3>
-<textarea id="activityDesc" placeholder="Opisz wykonane prace"></textarea>
-<button onclick="addActivity()">Dodaj czynność</button>
-<ul id="activitiesList"></ul>
-</div>
+      <div class="card">
+        <h2>Części w zleceniu</h2>
+        <div class="grid grid-5">
+          <div class="field">
+            <label for="partName">Nazwa części</label>
+            <input id="partName" type="text" placeholder="Łożysko" />
+          </div>
+          <div class="field">
+            <label for="partNumber">Numer części</label>
+            <input id="partNumber" type="text" placeholder="6204-2RS" />
+          </div>
+          <div class="field">
+            <label for="partPrice">Cena (zł)</label>
+            <input id="partPrice" type="number" min="0" step="0.01" value="0" />
+          </div>
+          <div class="field">
+            <label for="partQty">Ilość</label>
+            <input id="partQty" type="number" min="1" step="1" value="1" />
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="addPartBtn" type="button">Dodaj część</button>
+          </div>
+        </div>
+        <div id="partsList" class="list"></div>
+        <div class="summary">
+          <div class="summary-row"><span>Koszt części</span><strong id="partsTotal">0.00 zł</strong></div>
+        </div>
+      </div>
 
-<div class="card">
-  <h3>Lista do zrobienia</h3>
-  <div>
-    <input id="todoText" placeholder="Co trzeba zrobić">
-    <button onclick="addTodo()">Dodaj zadanie</button>
+      <div class="card">
+        <h2>Dojazd</h2>
+        <div class="grid grid-3">
+          <div class="field">
+            <label for="km">Liczba kilometrów</label>
+            <input id="km" type="number" min="0" step="0.1" value="0" />
+          </div>
+          <div class="field">
+            <label>Koszt dojazdu</label>
+            <input id="travelCostPreview" type="text" readonly value="0.00 zł" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Podsumowanie zlecenia</h2>
+        <div class="summary">
+          <div class="summary-row"><span>Praca</span><strong id="summaryLabor">0.00 zł</strong></div>
+          <div class="summary-row"><span>Części</span><strong id="summaryParts">0.00 zł</strong></div>
+          <div class="summary-row"><span>Dojazd</span><strong id="summaryTravel">0.00 zł</strong></div>
+          <div class="summary-row summary-total"><span>Łącznie</span><strong id="grandTotal">0.00 zł</strong></div>
+        </div>
+        <div class="inline-actions" style="margin-top:14px;">
+          <button class="btn btn-primary" id="saveOrderBtn" type="button">💾 Zapisz zlecenie</button>
+          <button class="btn btn-light" id="newOrderBtn" type="button">➕ Nowe zlecenie</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <h2>Historia zleceń</h2>
+        <div class="field">
+          <label for="historySearch">Wyszukiwarka</label>
+          <input id="historySearch" type="text" placeholder="Szukaj po kliencie, telefonie, urządzeniu lub numerze" />
+        </div>
+        <div id="historyList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="tab-warehouse" class="tab-content">
+      <div class="card">
+        <h2>Magazyn części</h2>
+        <div class="grid grid-4">
+          <div class="field">
+            <label for="whName">Nazwa części</label>
+            <input id="whName" type="text" placeholder="Filtr oleju" />
+          </div>
+          <div class="field">
+            <label for="whNumber">Numer części</label>
+            <input id="whNumber" type="text" placeholder="FO-120" />
+          </div>
+          <div class="field">
+            <label for="whQty">Ilość</label>
+            <input id="whQty" type="number" min="1" step="1" value="1" />
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="addWarehouseBtn" type="button">Dodaj do magazynu</button>
+          </div>
+        </div>
+        <div id="warehouseList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="tab-estimate" class="tab-content">
+      <div class="card">
+        <h2>Kosztorys naprawy</h2>
+        <p class="muted">Tutaj przygotujesz osobny kosztorys: części, zakres czynności oraz opcjonalną cenę usługi.</p>
+      </div>
+
+      <div class="card">
+        <h3>Części do kosztorysu</h3>
+        <div class="grid grid-5">
+          <div class="field">
+            <label for="estimatePartName">Nazwa części</label>
+            <input id="estimatePartName" type="text" placeholder="Pompa wody" />
+          </div>
+          <div class="field">
+            <label for="estimatePartNumber">Numer części</label>
+            <input id="estimatePartNumber" type="text" placeholder="PW-450" />
+          </div>
+          <div class="field">
+            <label for="estimatePartPrice">Cena (zł)</label>
+            <input id="estimatePartPrice" type="number" min="0" step="0.01" value="0" />
+          </div>
+          <div class="field">
+            <label for="estimatePartQty">Ilość</label>
+            <input id="estimatePartQty" type="number" min="1" step="1" value="1" />
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="addEstimatePartBtn" type="button">Dodaj do kosztorysu</button>
+          </div>
+        </div>
+        <div id="estimatePartsList" class="list"></div>
+        <div class="summary">
+          <div class="summary-row"><span>Suma części w kosztorysie</span><strong id="estimatePartsTotal">0.00 zł</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Zakres czynności</h3>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="estimateTaskText">Opis czynności</label>
+            <textarea id="estimateTaskText" placeholder="Np. demontaż podzespołu, diagnostyka, wymiana uszczelnienia, test końcowy"></textarea>
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="addEstimateTaskBtn" type="button">Dodaj czynność</button>
+          </div>
+        </div>
+        <div id="estimateTasksList" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Cena usługi</h3>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="estimateServicePrice">Cena za wykonaną usługę (opcjonalnie)</label>
+            <input id="estimateServicePrice" type="number" min="0" step="0.01" value="0" />
+          </div>
+          <div class="field">
+            <label for="estimateNotes">Uwagi do kosztorysu</label>
+            <textarea id="estimateNotes" placeholder="Np. cena orientacyjna, bez dodatkowych uszkodzeń ukrytych"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Podsumowanie kosztorysu</h3>
+        <div class="summary">
+          <div class="summary-row"><span>Części</span><strong id="estimateSummaryParts">0.00 zł</strong></div>
+          <div class="summary-row"><span>Usługa</span><strong id="estimateSummaryService">0.00 zł</strong></div>
+          <div class="summary-row summary-total"><span>Razem kosztorys</span><strong id="estimateGrandTotal">0.00 zł</strong></div>
+        </div>
+      </div>
+    </section>
   </div>
-  <ul id="todoList"></ul>
-</div>
 
-<div class="card">
-<h3>Czas pracy</h3>
-<input id="laborRate" type="number" value="100" placeholder="Stawka godzinowa">
-<input type="date" id="workDate">
-<input type="number" id="hoursInput" placeholder="Godziny">
-<button onclick="addHours()">Dodaj godziny</button>
-<ul id="hoursList"></ul>
-<p>Suma godzin: <span id="totalHours">0</span></p>
-<p>Koszt pracy: <span id="laborCost">0</span> zł</p>
-</div>
+  <script>
+    let workDays = [];
+    let parts = [];
+    let orders = [];
+    let warehouse = [];
+    let estimateParts = [];
+    let estimateTasks = [];
+    let currentOrderNumber = '';
+    let editingOrderId = null;
 
-<div class="card">
-<h3>Dojazd</h3>
-<input id="kmInput" type="number" placeholder="Kilometry">
-<input id="kmRate" type="number" value="1" placeholder="Stawka za km">
-<button onclick="addKm()">Dodaj kilometry</button>
-<ul id="kmList"></ul>
-<p>Koszt dojazdu: <span id="travelCost">0</span> zł</p>
-</div>
+    const money = (value) => `${Number(value || 0).toFixed(2)} zł`;
+    const uid = () => Date.now() + Math.floor(Math.random() * 1000);
+    const makeOrderNumber = () => `SRV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 90000) + 10000)}`;
 
-<div class="card">
-<h3>Podsumowanie</h3>
-<p>Łączna cena: <span id="totalCost">0</span> zł</p>
-<div class="summary-actions">
-    <button id="saveNewBtn" onclick="saveOrder()">Zapisz zlecenie</button>
-    <button id="updateBtn" style="display:none;" onclick="updateOrder()">Zapisz zmiany</button>
-    <button onclick="generatePDF()">Generuj PDF</button>
-</div>
-</div>
-</div>
-
-<!-- ================= HISTORIA ================= -->
-<div id="history" style="display:none">
-<h2>Historia zleceń</h2>
-<input id="search" placeholder="Szukaj klienta" oninput="renderOrders()">
-<div id="ordersList"></div>
-<h3 style="margin-top:16px;">Szczegóły zlecenia</h3>
-<div id="orderDetails" style="margin-top:8px;"></div>
-</div>
-
-<!-- ================= MAGAZYN ================= -->
-<div id="warehouse" style="display:none">
-<h2>Magazyn</h2>
-<div class="card">
-    <input id="whName" placeholder="Nazwa części">
-    <input id="whNumber" placeholder="Numer części">
-    <input id="whQty" type="number" placeholder="Ilość">
-    <input id="whPrice" type="number" placeholder="Cena">
-    <button onclick="addWarehouse()">Dodaj</button>
-</div>
-<ul id="warehouseList"></ul>
-</div>
-
-</div> <!-- container -->
-
-<script>
-// ----------------- SUPABASE -----------------
-const SUPABASE_URL = "https://avgrfeghycrsawaoiiil.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2Z3JmZWdoeWNyc2F3YW9paWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzQ4MTAsImV4cCI6MjA5MDAxMDgxMH0.q2HguQj2veHNuvyE9YC8XATymfa2pcRrVtW8mEpJJ-c";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ----------------- STANY -----------------
-let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
-let todos = [];
-let orderNumber = null;
-let currentOrderId = null;
-let currentOrderNumber = null;
-
-// pomocniczo: normalizacja pól, które mogą być JSON-em w stringu
-function normalizeArrayField(value){
-    if (!value) return [];
-    if (Array.isArray(value)) return value;
-    try{
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-    }catch(e){
-        console.warn("Nie udało się zparsować pola JSON:", value, e);
-        return [];
-    }
-}
-
-// inicjalizacja numeru zlecenia
-initOrderNumber();
-
-// ----------------- FUNKCJE POMOCNICZE -----------------
-async function generateOrderNumber(){
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,"0");
-    const d = String(now.getDate()).padStart(2,"0");
-    const datePrefix = `${y}${m}${d}`;
-
-    const { data, error } = await supabaseClient
-        .from("orders")
-        .select("id", { count: "exact", head: false })
-        .ilike("order_number", `${datePrefix}-%`);
-
-    const countForDay = (error || !data) ? 0 : data.length;
-    const sequence = countForDay + 1;
-
-    return `${datePrefix}-${sequence}`;
-}
-
-async function initOrderNumber(){
-    orderNumber = await generateOrderNumber();
-    document.getElementById("orderNumber").innerText = orderNumber;
-}
-
-function setEditMode(isEdit){
-    const editInfo = document.getElementById("editInfo");
-    const saveNewBtn = document.getElementById("saveNewBtn");
-    const updateBtn = document.getElementById("updateBtn");
-
-    if(isEdit){
-        editInfo.style.display = "block";
-        saveNewBtn.style.display = "none";
-        updateBtn.style.display = "inline-block";
-    }else{
-        editInfo.style.display = "none";
-        saveNewBtn.style.display = "inline-block";
-        updateBtn.style.display = "none";
-        currentOrderId = null;
-        currentOrderNumber = null;
-    }
-}
-
-// ----------------- FUNKCJE OGÓLNE -----------------
-function showTab(tab){
-    document.getElementById("order").style.display="none";
-    document.getElementById("history").style.display="none";
-    document.getElementById("warehouse").style.display="none";
-    document.getElementById(tab).style.display="block";
-}
-
-// ---------- AUTO-UZUPEŁNIANIE DANYCH KLIENTA ----------
-function fillClientData(){
-    const nameInput = document.getElementById("clientName").value.trim();
-    if(!nameInput) return;
-
-    const client = orders.find(o =>
-        (o.client_name || "").toLowerCase() === nameInput.toLowerCase()
-    );
-
-    if(client){
-        document.getElementById("clientPhone").value = client.client_phone || "";
-        document.getElementById("deviceName").value = client.device_name || "";
-    }
-}
-
-// ---------- AUTO-CENA CZĘŚCI Z MAGAZYNU ----------
-async function fillPartPriceFromWarehouse(){
-    const partInput = document.getElementById("partName").value.trim();
-    if(!partInput) return;
-
-    const { data, error } = await supabaseClient
-        .from("warehouse")
-        .select("price")
-        .ilike("name", partInput);
-
-    if(error){
-        console.log("Warehouse price fetch error", error);
-        return;
+    function setActiveTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      document.querySelectorAll('.tab-content').forEach(section => section.classList.toggle('active', section.id === `tab-${tab}`));
     }
 
-    if(data && data.length > 0 && typeof data[0].price === "number"){
-        document.getElementById("partPrice").value = data[0].price;
-    }
-}
-
-// ---------- GODZINY ----------
-function addHours(){
-    const date=document.getElementById("workDate").value;
-    const hours=parseFloat(document.getElementById("hoursInput").value);
-    if(!date || isNaN(hours)) return;
-    dailyHours.push({date:date,hours:hours});
-    document.getElementById("hoursInput").value="";
-    renderHours();
-}
-function renderHours(){
-    const list=document.getElementById("hoursList");
-    list.innerHTML="";
-    dailyHours.forEach((h,i)=>{
-        const li=document.createElement("li");
-        li.innerHTML=`${h.date} <input type="number" value="${h.hours}" onchange="editHours(${i},this.value)" style="width:60px; margin-left:6px;"> <button class="small-btn" onclick="removeHours(${i})">Usuń</button>`;
-        list.appendChild(li);
-    });
-    calculate();
-}
-function editHours(i,value){
-    dailyHours[i].hours=Number(value);
-    calculate();
-}
-function removeHours(i){
-    dailyHours.splice(i,1);
-    renderHours();
-}
-
-// ---------- CZĘŚCI ----------
-function addPart(){
-    const name=document.getElementById("partName").value;
-    const price=parseFloat(document.getElementById("partPrice").value);
-    const qty=parseInt(document.getElementById("partQty").value);
-    if(!name || isNaN(price)) return;
-    parts.push({name,price,qty});
-    document.getElementById("partName").value="";
-    document.getElementById("partPrice").value="";
-    document.getElementById("partQty").value="1";
-    renderParts();
-}
-
-function removePart(index){
-    parts.splice(index,1);
-    renderParts();
-}
-
-function editPart(index, field, value){
-    if(field === 'name'){
-        parts[index].name = value;
-    }else if(field === 'price'){
-        parts[index].price = parseFloat(value) || 0;
-    }else if(field === 'qty'){
-        parts[index].qty = parseInt(value) || 0;
-    }
-    calculate();
-    renderParts();
-}
-
-function renderParts(){
-    const list=document.getElementById("partsListUl");
-    list.innerHTML="";
-    parts.forEach((p,i)=>{
-        const li=document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${p.name}"
-                   onchange="editPart(${i}, 'name', this.value)"
-                   class="inline-input">
-            ilość: <input type="number" value="${p.qty}"
-                          onchange="editPart(${i}, 'qty', this.value)"
-                          class="inline-qty">
-            cena: <input type="number" value="${p.price}"
-                         onchange="editPart(${i}, 'price', this.value)"
-                         class="inline-qty"> zł
-            <button class="small-btn" onclick="removePart(${i})">Usuń</button>
-        `;
-        list.appendChild(li);
-    });
-    calculate();
-}
-
-// ---------- WYKONANE CZYNNOŚCI ----------
-function addActivity(){
-    const desc = document.getElementById("activityDesc").value.trim();
-    if(!desc) return;
-    activities.push(desc);
-    document.getElementById("activityDesc").value = "";
-    renderActivities();
-}
-
-function editActivity(index, value){
-    activities[index] = value;
-}
-
-function removeActivity(index){
-    activities.splice(index, 1);
-    renderActivities();
-}
-
-function renderActivities(){
-    const list = document.getElementById("activitiesList");
-    list.innerHTML = "";
-    activities.forEach((act, i) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${act}"
-                   onchange="editActivity(${i}, this.value)"
-                   style="width:calc(100% - 80px); margin-right:4px;">
-            <button class="small-btn" onclick="removeActivity(${i})">Usuń</button>
-        `;
-        list.appendChild(li);
-    });
-}
-
-// ---------- LISTA DO ZROBIENIA ----------
-async function loadTodosForOrder(orderNum){
-    if(!orderNum) return;
-    const { data, error } = await supabaseClient
-        .from("todos")
-        .select("*")
-        .eq("order_number", orderNum)
-        .order("created_at", { ascending: true });
-
-    if(error){
-        console.log("Błąd ładowania TODO:", error);
-        return;
-    }
-
-    todos = data || [];
-    renderTodos();
-}
-
-function renderTodos(){
-    const list = document.getElementById("todoList");
-    if(!list) return;
-    list.innerHTML = "";
-
-    todos.forEach((t, i) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="checkbox" ${t.done ? "checked" : ""} 
-                   onchange="toggleTodoDone(${i}, this.checked)">
-            <span style="${t.done ? "text-decoration: line-through; color: gray;" : ""}">
-                ${t.text}
-            </span>
-            <button class="small-btn" onclick="deleteTodo(${i})">Usuń</button>
-        `;
-        list.appendChild(li);
-    });
-}
-
-async function addTodo(){
-    const input = document.getElementById("todoText");
-    const text = input.value.trim();
-    if(!text) return;
-
-    const orderNum = orderNumber;
-    if(!orderNum){
-        alert("Brak numeru zlecenia");
-        return;
-    }
-
-    const { data, error } = await supabaseClient
-        .from("todos")
-        .insert([{ order_number: orderNum, text, done: false }])
-        .select();
-
-    if(error){
-        console.log("Błąd dodawania TODO:", error);
-        alert("Błąd dodawania zadania");
-        return;
-    }
-
-    todos.push(data[0]);
-    renderTodos();
-    input.value = "";
-}
-
-async function toggleTodoDone(index, checked){
-    const todo = todos[index];
-    if(!todo) return;
-
-    const { error } = await supabaseClient
-        .from("todos")
-        .update({ done: checked })
-        .eq("id", todo.id);
-
-    if(error){
-        console.log("Błąd aktualizacji TODO:", error);
-        alert("Błąd aktualizacji zadania");
-        renderTodos();
-        return;
-    }
-
-    todos[index].done = checked;
-    renderTodos();
-}
-
-async function deleteTodo(index){
-    const todo = todos[index];
-    if(!todo) return;
-
-    const { error } = await supabaseClient
-        .from("todos")
-        .delete()
-        .eq("id", todo.id);
-
-    if(error){
-        console.log("Błąd usuwania TODO:", error);
-        alert("Błąd usuwania zadania");
-        return;
-    }
-
-    todos.splice(index, 1);
-    renderTodos();
-}
-
-// ---------- KM ----------
-function addKm(){
-    const km=parseFloat(document.getElementById("kmInput").value);
-    if(isNaN(km) || km<=0) return;
-    travels.push(km);
-    document.getElementById("kmInput").value="";
-    renderKm();
-}
-function renderKm(){
-    const list=document.getElementById("kmList");
-    list.innerHTML="";
-    travels.forEach((k,i)=>{
-        const li=document.createElement("li");
-        li.innerHTML=`${k} km <button class="small-btn" onclick="removeKm(${i})">Usuń</button>`;
-        list.appendChild(li);
-    });
-    calculate();
-}
-function removeKm(i){
-    travels.splice(i,1);
-    renderKm();
-}
-
-// ---------- KALKULACJA ----------
-function calculate(){
-    const laborRate=parseFloat(document.getElementById("laborRate").value || "0");
-    const kmRate=parseFloat(document.getElementById("kmRate").value || "0");
-    const totalHours = dailyHours.reduce((s,d)=>s+d.hours,0);
-    const laborCost = totalHours*laborRate;
-    const partsCost = parts.reduce((s,p)=>s+p.price*p.qty,0);
-    const totalKm = travels.reduce((a,b)=>a+b,0);
-    const travelCost = totalKm*kmRate;
-    const total = laborCost + partsCost + travelCost;
-    document.getElementById("totalHours").innerText=totalHours;
-    document.getElementById("laborCost").innerText=laborCost.toFixed(2);
-    document.getElementById("partsCost").innerText=partsCost.toFixed(2);
-    document.getElementById("travelCost").innerText=travelCost.toFixed(2);
-    document.getElementById("totalCost").innerText=total.toFixed(2);
-}
-
-// ---------- ZAPIS NOWEGO ZLECENIA ----------
-async function saveOrder(){
-    const clientName=document.getElementById("clientName").value;
-    const clientPhone=document.getElementById("clientPhone").value;
-    const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText || "0");
-
-    const order={
-        order_number:orderNumber,
-        client_name:clientName,
-        client_phone:clientPhone,
-        device_name:deviceName,
-        parts:[...parts],
-        hours:[...dailyHours],
-        travels:[...travels],
-        activities:[...activities],
-        total:total
-    };
-
-    const {error}=await supabaseClient.from("orders").insert([order]);
-
-    if(error){
-        console.log(error);
-        alert("Blad zapisu do bazy");
-        return;
-    }
-
-    await applyWarehouseUsage(parts);
-
-    alert("Zlecenie zapisane w bazie");
-    clearForm();
-    renderOrders();
-}
-
-// ---------- UPDATE ISTNIEJĄCEGO ZLECENIA ----------
-async function updateOrder(){
-    if(currentOrderId === null){
-        alert("Brak wybranego zlecenia do edycji");
-        return;
-    }
-
-    const clientName=document.getElementById("clientName").value;
-    const clientPhone=document.getElementById("clientPhone").value;
-    const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText || "0");
-
-    const updatedOrder = {
-        client_name:clientName,
-        client_phone:clientPhone,
-        device_name:deviceName,
-        parts:[...parts],
-        hours:[...dailyHours],
-        travels:[...travels],
-        activities:[...activities],
-        total:total
-    };
-
-    const {error} = await supabaseClient
-        .from("orders")
-        .update(updatedOrder)
-        .eq("id", currentOrderId);
-
-    if(error){
-        console.log(error);
-        alert("Blad aktualizacji zlecenia");
-        return;
-    }
-
-    alert("Zlecenie zaktualizowane");
-    setEditMode(false);
-    clearForm();
-    renderOrders();
-}
-
-// ---------- RESET FORMULARZA ----------
-function clearForm(){
-    dailyHours=[]; parts=[]; travels=[]; activities=[]; todos=[];
-    renderHours(); renderParts(); renderKm(); renderActivities(); renderTodos();
-    document.getElementById("clientName").value="";
-    document.getElementById("clientPhone").value="";
-    document.getElementById("deviceName").value="";
-    initOrderNumber();
-    setEditMode(false);
-}
-
-// ---------- HISTORIA ----------
-async function renderOrders(){
-    const {data,error}=await supabaseClient
-        .from("orders")
-        .select("*")
-        .order("id",{ascending:false});
-
-    if(error){
-        console.log("renderOrders error:", error);
-        alert("Błąd historii: " + error.message);
-        return;
-    }
-
-    orders=data || [];
-    const search=document.getElementById("search").value?.toLowerCase() || "";
-    const list=document.getElementById("ordersList");
-    list.innerHTML="";
-    orders
-    .filter(o=>(o.client_name||"").toLowerCase().includes(search))
-    .forEach(o=>{
-        const div=document.createElement("div");
-        div.className="card";
-        div.innerHTML=`Numer: ${o.order_number}<br>
-        Klient: ${o.client_name}<br>
-        Koszt: ${o.total} zl<br>
-        <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
-        <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
-        <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
-        <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
-        list.appendChild(div);
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
     });
 
-    updateClientsSuggestions();
-}
-
-async function showOrder(num){
-    const o=orders.find(x=>x.order_number===num);
-    if(!o) return;
-
-    const oParts      = normalizeArrayField(o.parts);
-    const oActivities = normalizeArrayField(o.activities);
-    const oHours      = normalizeArrayField(o.hours);
-    const oTravels    = normalizeArrayField(o.travels);
-
-    const { data: todosData, error: todosError } = await supabaseClient
-        .from("todos")
-        .select("*")
-        .eq("order_number", num)
-        .order("created_at", { ascending: true });
-
-    if(todosError){
-        console.log("Błąd ładowania TODO do historii:", todosError);
+    function resetOrderForm() {
+      editingOrderId = null;
+      currentOrderNumber = makeOrderNumber();
+      document.getElementById('orderNumberView').textContent = `Numer zlecenia: ${currentOrderNumber}`;
+      document.getElementById('clientName').value = '';
+      document.getElementById('clientPhone').value = '';
+      document.getElementById('deviceName').value = '';
+      document.getElementById('laborRate').value = 120;
+      document.getElementById('kmRate').value = 1.5;
+      document.getElementById('workDate').value = '';
+      document.getElementById('workHours').value = 1;
+      document.getElementById('partName').value = '';
+      document.getElementById('partNumber').value = '';
+      document.getElementById('partPrice').value = 0;
+      document.getElementById('partQty').value = 1;
+      document.getElementById('km').value = 0;
+      workDays = [];
+      parts = [];
+      updateWorkPreview();
+      updatePartPreview();
+      updateTravelPreview();
+      renderWorkDays();
+      renderParts();
+      updateOrderSummary();
     }
 
-    const todosHistory = todosData || [];
+    function updateWorkPreview() {
+      const rate = Number(document.getElementById('laborRate').value || 0);
+      const hours = Number(document.getElementById('workHours').value || 0);
+      document.getElementById('workCostPreview').value = money(rate * hours);
+      updateOrderSummary();
+    }
 
-    const div=document.getElementById("orderDetails");
-    div.innerHTML=`
-    <h3>${o.order_number}</h3>
-    Numer zlecenia: ${o.order_number}<br>
-    Klient: ${o.client_name}<br>
-    Telefon: ${o.client_phone}<br>
-    Maszyna/Urzadzenie: ${o.device_name}<br>
-    <h4>Czesci</h4>
-    ${oParts.length ? oParts.map(p=>`${p.name} ${p.qty} x ${p.price} zl`).join("<br>"):""}
-    <h4>Wykonane czynnosci</h4>
-    ${oActivities.length ? oActivities.map(a=>`- ${a}`).join("<br>"):""}
-    <h4>Lista do zrobienia</h4>
-    ${todosHistory.length ? todosHistory.map(t => `${t.done ? "✅" : "⬜"} ${t.text}`).join("<br>") : "Brak zadań"}
-    <h4>Godziny</h4>
-    ${oHours.length ? oHours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
-    <h4>Dojazd</h4>
-    ${oTravels.length ? oTravels.map(k=>`${k} km`).join("<br>"):""}
-    <h3>Razem: ${o.total} zl</h3>
-    `;
-}
+    function updatePartPreview() {
+      updateOrderSummary();
+    }
 
-async function editOrder(num){
-    const o = orders.find(x => x.order_number === num);
-    console.log("editOrder, znalezione zlecenie =", o);
+    function updateTravelPreview() {
+      const km = Number(document.getElementById('km').value || 0);
+      const rate = Number(document.getElementById('kmRate').value || 0);
+      document.getElementById('travelCostPreview').value = money(km * rate);
+      updateOrderSummary();
+    }
 
-    if(!o){
-        alert("Nie znaleziono zlecenia: " + num);
+    function renderWorkDays() {
+      const wrap = document.getElementById('workList');
+      if (!workDays.length) {
+        wrap.innerHTML = '<div class="empty">Brak dodanego czasu pracy.</div>';
+      } else {
+        wrap.innerHTML = workDays.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${item.date}</div>
+              <div class="item-sub">${item.hours} h</div>
+            </div>
+            <div class="item-price">${money(item.cost)}</div>
+            <div class="item-actions">
+              <button class="btn btn-light" type="button" onclick="editWorkDay(${item.id})">Edytuj</button>
+              <button class="btn btn-danger" type="button" onclick="removeWorkDay(${item.id})">Usuń</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      const totalHours = workDays.reduce((s, x) => s + Number(x.hours), 0);
+      const totalCost = workDays.reduce((s, x) => s + Number(x.cost), 0);
+      document.getElementById('workHoursTotal').textContent = `${totalHours.toFixed(2)} h`;
+      document.getElementById('laborTotal').textContent = money(totalCost);
+    }
+
+    function renderParts() {
+      const wrap = document.getElementById('partsList');
+      if (!parts.length) {
+        wrap.innerHTML = '<div class="empty">Brak dodanych części.</div>';
+      } else {
+        wrap.innerHTML = parts.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${item.name}</div>
+              <div class="item-sub">Nr części: ${item.number || 'brak'} · Ilość: ${item.qty} · Cena: ${money(item.price)}</div>
+            </div>
+            <div class="item-price">${money(item.total)}</div>
+            <div class="item-actions">
+              <button class="btn btn-light" type="button" onclick="editPart(${item.id})">Edytuj</button>
+              <button class="btn btn-danger" type="button" onclick="removePart(${item.id})">Usuń</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      const totalCost = parts.reduce((s, x) => s + Number(x.total), 0);
+      document.getElementById('partsTotal').textContent = money(totalCost);
+    }
+
+    function updateOrderSummary() {
+      const labor = workDays.reduce((s, x) => s + Number(x.cost), 0);
+      const partsTotal = parts.reduce((s, x) => s + Number(x.total), 0);
+      const travel = Number(document.getElementById('km').value || 0) * Number(document.getElementById('kmRate').value || 0);
+      const grand = labor + partsTotal + travel;
+      document.getElementById('summaryLabor').textContent = money(labor);
+      document.getElementById('summaryParts').textContent = money(partsTotal);
+      document.getElementById('summaryTravel').textContent = money(travel);
+      document.getElementById('grandTotal').textContent = money(grand);
+    }
+
+    function addWorkDay() {
+      const date = document.getElementById('workDate').value;
+      const hours = Number(document.getElementById('workHours').value || 0);
+      const rate = Number(document.getElementById('laborRate').value || 0);
+      if (!date || hours <= 0) {
+        alert('Podaj datę i liczbę godzin.');
         return;
+      }
+      workDays.push({ id: uid(), date, hours, cost: hours * rate });
+      document.getElementById('workDate').value = '';
+      document.getElementById('workHours').value = 1;
+      updateWorkPreview();
+      renderWorkDays();
+      updateOrderSummary();
     }
 
-    showTab('order');
-
-    currentOrderId = o.id;
-    currentOrderNumber = o.order_number;
-
-    // surowe wartości z bazy
-    console.log("client_name:", o.client_name, "client_phone:", o.client_phone, "device_name:", o.device_name);
-
-    document.getElementById("clientName").value  = o.client_name  || "";
-    document.getElementById("clientPhone").value = o.client_phone || "";
-    document.getElementById("deviceName").value  = o.device_name  || "";
-
-    orderNumber = o.order_number;
-    document.getElementById("orderNumber").innerText = orderNumber;
-
-    dailyHours = normalizeArrayField(o.hours);
-    parts      = normalizeArrayField(o.parts);
-    travels    = normalizeArrayField(o.travels);
-    activities = normalizeArrayField(o.activities);
-
-    console.log("po normalizeArrayField:", {dailyHours, parts, travels, activities});
-
-    renderHours();
-    renderParts();
-    renderKm();
-    renderActivities();
-    calculate();
-
-    await loadTodosForOrder(orderNumber);
-    setEditMode(true);
-
-    // jeśli po wczytaniu nadal pusto – pokaż alert diagnostyczny
-    if(
-        !document.getElementById("clientName").value &&
-        !document.getElementById("clientPhone").value &&
-        !document.getElementById("deviceName").value
-    ){
-        alert("Rekord ma puste dane klienta dla numeru: " + num);
+    function editWorkDay(id) {
+      const item = workDays.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('workDate').value = item.date;
+      document.getElementById('workHours').value = item.hours;
+      workDays = workDays.filter(x => x.id !== id);
+      renderWorkDays();
+      updateWorkPreview();
+      updateOrderSummary();
     }
-}
-function generatePdfFromHistory(orderNum){
-    const o = orders.find(x => x.order_number === orderNum);
-    if(!o) return;
 
-    orderNumber = o.order_number;
-    document.getElementById("clientName").value = o.client_name || "";
-    document.getElementById("clientPhone").value = o.client_phone || "";
-    document.getElementById("deviceName").value = o.device_name || "";
+    function removeWorkDay(id) {
+      workDays = workDays.filter(x => x.id !== id);
+      renderWorkDays();
+      updateOrderSummary();
+    }
 
-    dailyHours = normalizeArrayField(o.hours);
-    parts      = normalizeArrayField(o.parts);
-    travels    = normalizeArrayField(o.travels);
-    activities = normalizeArrayField(o.activities);
-
-    renderHours();
-    renderParts();
-    renderKm();
-    renderActivities();
-    calculate();
-
-    generatePDF();
-}
-
-// ---------- USUWANIE ZLECENIA ----------
-async function deleteOrder(id){
-    if(!id) return;
-    if(!confirm("Czy na pewno chcesz usunac to zlecenie?")) return;
-
-    const { error } = await supabaseClient
-        .from("orders")
-        .delete()
-        .eq("id", id);
-
-    if(error){
-        console.log("Delete order error", error);
-        alert("Blad usuwania zlecenia");
+    function addPart() {
+      const name = document.getElementById('partName').value.trim();
+      const number = document.getElementById('partNumber').value.trim();
+      const price = Number(document.getElementById('partPrice').value || 0);
+      const qty = Number(document.getElementById('partQty').value || 0);
+      if (!name || price < 0 || qty <= 0) {
+        alert('Podaj nazwę części, cenę i ilość.');
         return;
+      }
+      parts.push({ id: uid(), name, number, price, qty, total: price * qty });
+      document.getElementById('partName').value = '';
+      document.getElementById('partNumber').value = '';
+      document.getElementById('partPrice').value = 0;
+      document.getElementById('partQty').value = 1;
+      renderParts();
+      updateOrderSummary();
     }
 
-    if(currentOrderId === id){
-        clearForm();
+    function editPart(id) {
+      const item = parts.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('partName').value = item.name;
+      document.getElementById('partNumber').value = item.number;
+      document.getElementById('partPrice').value = item.price;
+      document.getElementById('partQty').value = item.qty;
+      parts = parts.filter(x => x.id !== id);
+      renderParts();
+      updateOrderSummary();
     }
 
-    document.getElementById("orderDetails").innerHTML = "";
-    renderOrders();
-}
+    function removePart(id) {
+      parts = parts.filter(x => x.id !== id);
+      renderParts();
+      updateOrderSummary();
+    }
 
-// ---------- PODPOWIEDZI KLIENTÓW ----------
-function updateClientsSuggestions(){
-    const datalist = document.getElementById("clientsList");
-    if(!datalist) return;
-
-    const namesSet = new Set();
-    orders.forEach(o => {
-        if(o.client_name){
-            namesSet.add(o.client_name.trim());
-        }
-    });
-
-    datalist.innerHTML = "";
-    Array.from(namesSet).sort().forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        datalist.appendChild(opt);
-    });
-}
-
-// ---------- MAGAZYN ----------
-async function loadWarehouse(){
-    const { data, error } = await supabaseClient
-        .from("warehouse")
-        .select("*")
-        .order("id", { ascending: true });
-
-    if(error){
-        console.log("Warehouse load error", error);
-        alert("Błąd wczytywania magazynu: " + error.message);
+    function renderWarehouse() {
+      const wrap = document.getElementById('warehouseList');
+      if (!warehouse.length) {
+        wrap.innerHTML = '<div class="empty">Magazyn jest pusty.</div>';
         return;
+      }
+      wrap.innerHTML = warehouse.map(item => `
+        <div class="item">
+          <div class="item-main">
+            <div class="item-title">${item.name}</div>
+            <div class="item-sub">Nr części: ${item.number || 'brak'}</div>
+          </div>
+          <div><span class="badge">${item.qty} szt.</span></div>
+          <div class="item-actions">
+            <button class="btn btn-light" type="button" onclick="editWarehouseItem(${item.id})">Edytuj</button>
+            <button class="btn btn-danger" type="button" onclick="removeWarehouseItem(${item.id})">Usuń</button>
+          </div>
+        </div>
+      `).join('');
     }
 
-    warehouse = data || [];
+    function addWarehouseItem() {
+      const name = document.getElementById('whName').value.trim();
+      const number = document.getElementById('whNumber').value.trim();
+      const qty = Number(document.getElementById('whQty').value || 0);
+      if (!name || qty <= 0) {
+        alert('Podaj nazwę części i ilość.');
+        return;
+      }
+      warehouse.push({ id: uid(), name, number, qty });
+      document.getElementById('whName').value = '';
+      document.getElementById('whNumber').value = '';
+      document.getElementById('whQty').value = 1;
+      renderWarehouse();
+    }
+
+    function editWarehouseItem(id) {
+      const item = warehouse.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('whName').value = item.name;
+      document.getElementById('whNumber').value = item.number;
+      document.getElementById('whQty').value = item.qty;
+      warehouse = warehouse.filter(x => x.id !== id);
+      renderWarehouse();
+    }
+
+    function removeWarehouseItem(id) {
+      warehouse = warehouse.filter(x => x.id !== id);
+      renderWarehouse();
+    }
+
+    function saveOrder() {
+      const order = {
+        id: editingOrderId || uid(),
+        orderNumber: currentOrderNumber,
+        clientName: document.getElementById('clientName').value.trim(),
+        clientPhone: document.getElementById('clientPhone').value.trim(),
+        deviceName: document.getElementById('deviceName').value.trim(),
+        laborRate: Number(document.getElementById('laborRate').value || 0),
+        kmRate: Number(document.getElementById('kmRate').value || 0),
+        km: Number(document.getElementById('km').value || 0),
+        workDays: [...workDays],
+        parts: [...parts],
+        total: document.getElementById('grandTotal').textContent,
+        createdAt: new Date().toLocaleString('pl-PL')
+      };
+      if (!order.clientName && !order.deviceName) {
+        alert('Uzupełnij przynajmniej klienta lub urządzenie.');
+        return;
+      }
+      const idx = orders.findIndex(x => x.id === order.id);
+      if (idx >= 0) orders[idx] = order; else orders.unshift(order);
+      renderHistory();
+      alert('Zlecenie zostało zapisane w historii tej sesji.');
+      setActiveTab('history');
+      resetOrderForm();
+    }
+
+    function renderHistory() {
+      const wrap = document.getElementById('historyList');
+      const search = (document.getElementById('historySearch').value || '').toLowerCase();
+      const filtered = orders.filter(order => {
+        const text = `${order.orderNumber} ${order.clientName} ${order.clientPhone} ${order.deviceName}`.toLowerCase();
+        return text.includes(search);
+      });
+      if (!filtered.length) {
+        wrap.innerHTML = '<div class="empty">Brak zapisanych zleceń.</div>';
+        return;
+      }
+      wrap.innerHTML = filtered.map(order => `
+        <div class="item">
+          <div class="item-main">
+            <div class="item-title">${order.orderNumber}</div>
+            <div class="item-sub">${order.clientName || '—'} · ${order.clientPhone || '—'} · ${order.deviceName || '—'}<br>${order.createdAt}</div>
+          </div>
+          <div class="item-price">${order.total}</div>
+          <div class="item-actions">
+            <button class="btn btn-light" type="button" onclick="loadOrder(${order.id})">Wczytaj</button>
+            <button class="btn btn-danger" type="button" onclick="deleteOrder(${order.id})">Usuń</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function loadOrder(id) {
+      const order = orders.find(x => x.id === id);
+      if (!order) return;
+      editingOrderId = order.id;
+      currentOrderNumber = order.orderNumber;
+      document.getElementById('orderNumberView').textContent = `Numer zlecenia: ${currentOrderNumber}`;
+      document.getElementById('clientName').value = order.clientName || '';
+      document.getElementById('clientPhone').value = order.clientPhone || '';
+      document.getElementById('deviceName').value = order.deviceName || '';
+      document.getElementById('laborRate').value = order.laborRate || 0;
+      document.getElementById('kmRate').value = order.kmRate || 0;
+      document.getElementById('km').value = order.km || 0;
+      workDays = [...(order.workDays || [])];
+      parts = [...(order.parts || [])];
+      renderWorkDays();
+      renderParts();
+      updateWorkPreview();
+      updateTravelPreview();
+      updateOrderSummary();
+      setActiveTab('order');
+    }
+
+    function deleteOrder(id) {
+      orders = orders.filter(x => x.id !== id);
+      renderHistory();
+    }
+
+    function renderEstimateParts() {
+      const wrap = document.getElementById('estimatePartsList');
+      if (!estimateParts.length) {
+        wrap.innerHTML = '<div class="empty">Brak części w kosztorysie.</div>';
+      } else {
+        wrap.innerHTML = estimateParts.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${item.name}</div>
+              <div class="item-sub">Nr części: ${item.number || 'brak'} · Ilość: ${item.qty} · Cena: ${money(item.price)}</div>
+            </div>
+            <div class="item-price">${money(item.total)}</div>
+            <div class="item-actions">
+              <button class="btn btn-light" type="button" onclick="editEstimatePart(${item.id})">Edytuj</button>
+              <button class="btn btn-danger" type="button" onclick="removeEstimatePart(${item.id})">Usuń</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      const total = estimateParts.reduce((s, x) => s + Number(x.total), 0);
+      document.getElementById('estimatePartsTotal').textContent = money(total);
+      document.getElementById('estimateSummaryParts').textContent = money(total);
+      updateEstimateSummary();
+    }
+
+    function addEstimatePart() {
+      const name = document.getElementById('estimatePartName').value.trim();
+      const number = document.getElementById('estimatePartNumber').value.trim();
+      const price = Number(document.getElementById('estimatePartPrice').value || 0);
+      const qty = Number(document.getElementById('estimatePartQty').value || 0);
+      if (!name || qty <= 0) {
+        alert('Podaj nazwę części i ilość w kosztorysie.');
+        return;
+      }
+      estimateParts.push({ id: uid(), name, number, price, qty, total: price * qty });
+      document.getElementById('estimatePartName').value = '';
+      document.getElementById('estimatePartNumber').value = '';
+      document.getElementById('estimatePartPrice').value = 0;
+      document.getElementById('estimatePartQty').value = 1;
+      renderEstimateParts();
+    }
+
+    function editEstimatePart(id) {
+      const item = estimateParts.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('estimatePartName').value = item.name;
+      document.getElementById('estimatePartNumber').value = item.number;
+      document.getElementById('estimatePartPrice').value = item.price;
+      document.getElementById('estimatePartQty').value = item.qty;
+      estimateParts = estimateParts.filter(x => x.id !== id);
+      renderEstimateParts();
+    }
+
+    function removeEstimatePart(id) {
+      estimateParts = estimateParts.filter(x => x.id !== id);
+      renderEstimateParts();
+    }
+
+    function renderEstimateTasks() {
+      const wrap = document.getElementById('estimateTasksList');
+      if (!estimateTasks.length) {
+        wrap.innerHTML = '<div class="empty">Brak dodanych czynności.</div>';
+      } else {
+        wrap.innerHTML = estimateTasks.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">Czynność</div>
+              <div class="item-sub">${item.text}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-light" type="button" onclick="editEstimateTask(${item.id})">Edytuj</button>
+              <button class="btn btn-danger" type="button" onclick="removeEstimateTask(${item.id})">Usuń</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function addEstimateTask() {
+      const text = document.getElementById('estimateTaskText').value.trim();
+      if (!text) {
+        alert('Wpisz zakres czynności.');
+        return;
+      }
+      estimateTasks.push({ id: uid(), text });
+      document.getElementById('estimateTaskText').value = '';
+      renderEstimateTasks();
+    }
+
+    function editEstimateTask(id) {
+      const item = estimateTasks.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('estimateTaskText').value = item.text;
+      estimateTasks = estimateTasks.filter(x => x.id !== id);
+      renderEstimateTasks();
+    }
+
+    function removeEstimateTask(id) {
+      estimateTasks = estimateTasks.filter(x => x.id !== id);
+      renderEstimateTasks();
+    }
+
+    function updateEstimateSummary() {
+      const partsTotal = estimateParts.reduce((s, x) => s + Number(x.total), 0);
+      const service = Number(document.getElementById('estimateServicePrice').value || 0);
+      document.getElementById('estimateSummaryService').textContent = money(service);
+      document.getElementById('estimateGrandTotal').textContent = money(partsTotal + service);
+    }
+
+    document.getElementById('laborRate').addEventListener('input', updateWorkPreview);
+    document.getElementById('workHours').addEventListener('input', updateWorkPreview);
+    document.getElementById('kmRate').addEventListener('input', updateTravelPreview);
+    document.getElementById('km').addEventListener('input', updateTravelPreview);
+    document.getElementById('partPrice').addEventListener('input', updatePartPreview);
+    document.getElementById('partQty').addEventListener('input', updatePartPreview);
+    document.getElementById('historySearch').addEventListener('input', renderHistory);
+    document.getElementById('estimateServicePrice').addEventListener('input', updateEstimateSummary);
+
+    document.getElementById('addWorkBtn').addEventListener('click', addWorkDay);
+    document.getElementById('addPartBtn').addEventListener('click', addPart);
+    document.getElementById('addWarehouseBtn').addEventListener('click', addWarehouseItem);
+    document.getElementById('saveOrderBtn').addEventListener('click', saveOrder);
+    document.getElementById('newOrderBtn').addEventListener('click', resetOrderForm);
+    document.getElementById('addEstimatePartBtn').addEventListener('click', addEstimatePart);
+    document.getElementById('addEstimateTaskBtn').addEventListener('click', addEstimateTask);
+
+    resetOrderForm();
     renderWarehouse();
-    updatePartsSuggestions();
-}
-
-async function addWarehouse(){
-    const name = document.getElementById("whName").value;
-    const number = document.getElementById("whNumber").value;
-    const qty = parseInt(document.getElementById("whQty").value);
-    const price = parseFloat(document.getElementById("whPrice").value);
-
-    if(!name || !number || isNaN(qty) || isNaN(price)) return;
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .insert([{
-            name,
-            number,
-            qty,
-            price,
-            created_at: new Date().toISOString()
-        }]);
-
-    if(error){
-        console.log("Warehouse insert error", error);
-        alert("Blad zapisu magazynu");
-        return;
-    }
-
-    document.getElementById("whName").value = "";
-    document.getElementById("whNumber").value = "";
-    document.getElementById("whQty").value = "";
-    document.getElementById("whPrice").value = "";
-
-    loadWarehouse();
-}
-
-async function editWarehouseItem(index, field, value){
-    const item = warehouse[index];
-    if(!item) return;
-
-    let newData = {};
-    if(field === 'name'){
-        newData.name = value;
-    }else if(field === 'number'){
-        newData.number = value;
-    }else if(field === 'qty'){
-        newData.qty = parseInt(value) || 0;
-    }else if(field === 'price'){
-        newData.price = parseFloat(value) || 0;
-    }
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .update(newData)
-        .eq("id", item.id);
-
-    if(error){
-        console.log("Warehouse update error", error);
-        alert("Blad aktualizacji magazynu");
-        return;
-    }
-
-    warehouse[index] = { ...item, ...newData };
-    renderWarehouse();
-    updatePartsSuggestions();
-}
-
-async function changeWarehouseQty(index, delta){
-    const item = warehouse[index];
-    if(!item) return;
-
-    const newQty = Math.max(0, (item.qty || 0) + delta);
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .update({ qty:newQty })
-        .eq("id", item.id);
-
-    if(error){
-        console.log("Warehouse qty update error", error);
-        alert("Blad zmiany ilosci");
-        return;
-    }
-
-    warehouse[index].qty = newQty;
-    renderWarehouse();
-}
-
-async function removeWarehouse(index){
-    const item = warehouse[index];
-    if(!item) return;
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .delete()
-        .eq("id", item.id);
-
-    if(error){
-        console.log("Warehouse delete error", error);
-        alert("Blad usuwania z magazynu");
-        return;
-    }
-
-    warehouse.splice(index,1);
-    renderWarehouse();
-    updatePartsSuggestions();
-}
-
-function renderWarehouse(){
-    const list=document.getElementById("warehouseList");
-    list.innerHTML="";
-    warehouse.forEach((p,i)=>{
-        const li=document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${p.name}"
-                   onchange="editWarehouseItem(${i}, 'name', this.value)"
-                   class="inline-input">
-            <input type="text" value="${p.number}"
-                   onchange="editWarehouseItem(${i}, 'number', this.value)"
-                   class="inline-input">
-            ilosc:
-            <input type="number" value="${p.qty}"
-                   onchange="editWarehouseItem(${i}, 'qty', this.value)"
-                   class="inline-qty">
-            cena:
-            <input type="number" value="${p.price || 0}"
-                   onchange="editWarehouseItem(${i}, 'price', this.value)"
-                   class="inline-qty">
-            <button class="small-btn" onclick="changeWarehouseQty(${i}, 1)">+1</button>
-            <button class="small-btn" onclick="changeWarehouseQty(${i}, -1)">-1</button>
-            <button class="small-btn" onclick="removeWarehouse(${i})">Usun</button>
-        `;
-        list.appendChild(li);
-    });
-}
-
-// ---------- PODPOWIEDZI CZĘŚCI Z MAGAZYNU ----------
-function updatePartsSuggestions(){
-    const datalist = document.getElementById("partsList");
-    if(!datalist) return;
-
-    datalist.innerHTML = "";
-    warehouse.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item.name;
-        opt.setAttribute("data-number", item.number);
-        opt.setAttribute("data-qty", item.qty);
-        opt.setAttribute("data-price", item.price || 0);
-        datalist.appendChild(opt);
-    });
-}
-
-// ---------- AUTOMATYCZNE ZUŻYCIE MAGAZYNU ----------
-async function applyWarehouseUsage(partsUsed){
-    if(!Array.isArray(partsUsed) || partsUsed.length === 0) return;
-
-    for(const used of partsUsed){
-        const partName = used.name;
-        const usedQty = used.qty || 0;
-        if(!partName || usedQty <= 0) continue;
-
-        const itemIndex = warehouse.findIndex(
-            w => (w.name || "").toLowerCase() === partName.toLowerCase()
-        );
-        if(itemIndex === -1) continue;
-        const item = warehouse[itemIndex];
-
-        const newQty = Math.max(0, (item.qty || 0) - usedQty);
-
-        const { error } = await supabaseClient
-            .from("warehouse")
-            .update({ qty: newQty })
-            .eq("id", item.id);
-
-        if(error){
-            console.log("Warehouse auto usage error", error);
-            continue;
-        }
-
-        warehouse[itemIndex].qty = newQty;
-    }
-    renderWarehouse();
-}
-
-// ---------- PDF ----------
-function stripPolishChars(text){
-    if(!text) return "";
-    const map = {
-        'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z',
-        'Ą':'A','Ć':'C','Ę':'E','Ł':'L','Ń':'N','Ó':'O','Ś':'S','Ź':'Z','Ż':'Z'
-    };
-    return text.split("").map(ch => map[ch] || ch).join("");
-}
-
-function generatePDF(){
-    const {jsPDF} = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-    });
-
-    const clientName = stripPolishChars(document.getElementById("clientName").value || "—");
-    const clientPhone = stripPolishChars(document.getElementById("clientPhone").value || "—");
-    const deviceName = stripPolishChars(document.getElementById("deviceName").value || "—");
-    const totalCost = stripPolishChars(document.getElementById("totalCost").innerText || "0");
-    const laborCostVal = stripPolishChars(document.getElementById("laborCost").innerText || "0");
-    const travelCostVal = stripPolishChars(document.getElementById("travelCost").innerText || "0");
-    const partsCostVal = stripPolishChars(document.getElementById("partsCost").innerText || "0");
-
-    let yPos = 25;
-
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text("PROTOKOL NAPRAWY", 105, yPos, {align: 'center'});
-    yPos += 10;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100);
-    doc.text("Numer zlecenia: " + stripPolishChars(orderNumber), 105, yPos, {align: 'center'});
-    doc.setTextColor(0);
-    yPos += 15;
-
-    doc.setDrawColor(180);
-    doc.setFillColor(248, 250, 252);
-    doc.rect(15, yPos-6, 180, 28, 'FD');
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Dane klienta", 20, yPos);
-    yPos += 7;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text("Imie i nazwisko: " + clientName, 20, yPos);
-    yPos += 6;
-    doc.text("Telefon: " + clientPhone, 20, yPos);
-    yPos += 6;
-    doc.text("Maszyna/Urzadzenie: " + deviceName, 20, yPos);
-    yPos += 12;
-
-    if(parts.length > 0){
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text("Uzyte czesci", 20, yPos);
-        yPos += 5;
-
-        const partsBody = parts.map(p => [
-            stripPolishChars(p.name || ""),
-            String(p.qty || 0),
-            (p.price || 0).toFixed(2) + " zl",
-            ((p.price || 0) * (p.qty || 0)).toFixed(2) + " zl"
-        ]);
-
-        doc.autoTable({
-            startY: yPos,
-            head: [['Nazwa', 'Ilosc', 'Cena jedn.', 'Razem']],
-            body: partsBody,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [37, 99, 235],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center',
-                fontSize: 10
-            },
-            styles: {
-                fontSize: 9,
-                cellPadding: 4,
-                font: 'helvetica'
-            },
-            columnStyles: {
-                0: { halign: 'left', cellWidth: 80 },
-                1: { halign: 'center', cellWidth: 25 },
-                2: { halign: 'right', cellWidth: 35 },
-                3: { halign: 'right', cellWidth: 35 }
-            },
-            margin: { left: 15, right: 15 }
-        });
-
-        yPos = doc.lastAutoTable.finalY + 10;
-    }
-
-    const cleanActivities = activities.map(a => stripPolishChars(a));
-    if(cleanActivities.length > 0){
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text("Wykonane czynnosci serwisowe", 20, yPos);
-        yPos += 6;
-
-        doc.setDrawColor(180);
-        doc.setFillColor(252, 252, 252);
-        
-        const lineHeight = 6;
-        const actHeight = cleanActivities.length * lineHeight + 6;
-        doc.rect(15, yPos-3, 180, actHeight, 'FD');
-
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        cleanActivities.forEach(act => {
-            doc.text("- " + act, 20, yPos);
-            yPos += lineHeight;
-        });
-        yPos += 8;
-    }
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Koszty", 20, yPos);
-    yPos += 5;
-
-    const costsBody = [
-        ['Czesci', partsCostVal + " zl"],
-        ['Robocizna', laborCostVal + " zl"],
-        ['Dojazd', travelCostVal + " zl"]
-    ];
-
-    doc.autoTable({
-        startY: yPos,
-        body: costsBody,
-        theme: 'plain',
-        styles: {
-            fontSize: 10,
-            cellPadding: 3,
-            font: 'helvetica'
-        },
-        columnStyles: {
-            0: { halign: 'left', fontStyle: 'bold', cellWidth: 50 },
-            1: { halign: 'right', cellWidth: 130 }
-        },
-        margin: { left: 15, right: 15 }
-    });
-
-    yPos = doc.lastAutoTable.finalY + 12;
-
-    doc.setDrawColor(37, 99, 235);
-    doc.setFillColor(239, 246, 255);
-    doc.setLineWidth(0.8);
-    doc.rect(15, yPos-7, 180, 15, 'FD');
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(37, 99, 235);
-    doc.text("LACZNIE: " + totalCost + " zl", 105, yPos, {align: 'center'});
-    doc.setTextColor(0);
-
-    yPos = 285;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(120);
-    const dateStr = new Date().toLocaleString('pl-PL');
-    doc.text("Wygenerowano: " + stripPolishChars(dateStr), 105, yPos, {align: 'center'});
-
-    doc.save("zlecenie_" + stripPolishChars(orderNumber) + ".pdf");
-}
-
-// ---------- START ----------
-renderOrders();
-loadWarehouse();
-</script>
+    renderHistory();
+    renderEstimateParts();
+    renderEstimateTasks();
+    updateEstimateSummary();
+  </script>
 </body>
 </html>
