@@ -4,178 +4,45 @@
 <meta charset="UTF-8">
 <title>System Serwisowy</title>
 
-<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- jsPDF AutoTable -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-}
-body{
-    font-family:Arial, sans-serif;
-    background:#f3f3f3;
-    padding:30px;
-}
-.container{
-    max-width:1000px;
-    margin:auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.05);
-}
-h1{
-    margin-bottom:10px;
-}
-h2{
-    margin-top:10px;
-}
-input, button, textarea{
-    font-family:inherit;
-}
-input, textarea{
-    width:100%;
-    padding:8px 10px;
-    margin-top:6px;
-    border:1px solid #ccc;
-    border-radius:4px;
-}
-input:focus, textarea:focus{
-    outline:none;
-    border-color:#2563eb;
-    box-shadow:0 0 0 1px rgba(37,99,235,0.3);
-}
-textarea{
-    resize:vertical;
-    min-height:60px;
-}
-button{
-    padding:10px 16px;
-    margin-top:10px;
-    border:none;
-    border-radius:4px;
-    background:#2563eb;
-    color:#fff;
-    cursor:pointer;
-    font-weight:600;
-    transition:background 0.15s ease, transform 0.05s ease;
-}
-button:hover{
-    background:#1d4ed8;
-}
-button:active{
-    transform:scale(0.98);
-}
-.card{
-    border:1px solid #e5e7eb;
-    padding:16px;
-    margin-top:18px;
-    border-radius:8px;
-    background:#f9fafb;
-}
-.card h3{
-    margin-bottom:6px;
-}
-.card p{
-    margin-top:6px;
-}
-.tabs{
-    margin-bottom:10px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-}
-.tabs button{
-    width:auto;
-    margin-right:0;
-    margin-top:0;
-    background:#e5e7eb;
-    color:#111827;
-    font-weight:500;
-}
-.tabs button:hover{
-    background:#d1d5db;
-}
-.small-btn{
-    width:auto;
-    padding:4px 8px;
-    margin-left:4px;
-    margin-top:0;
-    font-size:12px;
-}
-.inline-input{
-    width:160px;
-    padding:4px 6px;
-    margin-top:0;
-    margin-right:4px;
-}
-.inline-qty{
-    width:70px;
-    padding:4px 6px;
-    margin-top:0;
-    margin-right:4px;
-}
-ul{
-    list-style:none;
-    margin-top:8px;
-}
-li{
-    margin-bottom:6px;
-}
-.summary-actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:10px;
-}
-.summary-actions button{
-    flex:1 1 180px;
-}
-#ordersList .card{
-    cursor:pointer;
-    transition:background 0.15s ease, transform 0.05s ease;
-}
-#ordersList .card:hover{
-    background:#eef2ff;
-    transform:translateY(-1px);
-}
-.section-note{
-    font-size:13px;
-    color:#6b7280;
-    margin-top:6px;
-}
-.total-box{
-    background:#eef6ff;
-    border:1px solid #bfdbfe;
-    padding:12px;
-    border-radius:8px;
-    margin-top:10px;
-}
-@media (max-width:600px){
-    body{
-        padding:10px;
-    }
-    .container{
-        padding:12px;
-    }
-    .card{
-        padding:12px;
-    }
-    .inline-input{
-        width:120px;
-    }
-}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#f3f3f3;padding:30px;}
+.container{max-width:1100px;margin:auto;background:white;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+h1{margin-bottom:10px;}
+h2{margin-top:10px;}
+h3{margin-bottom:6px;}
+input,button,textarea{font-family:inherit;}
+input,textarea,select{width:100%;padding:8px 10px;margin-top:6px;border:1px solid #ccc;border-radius:4px;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 1px rgba(37,99,235,0.3);}
+textarea{resize:vertical;min-height:60px;}
+button{padding:10px 16px;margin-top:10px;border:none;border-radius:4px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;transition:background 0.15s ease,transform 0.05s ease;}
+button:hover{background:#1d4ed8;}
+button:active{transform:scale(0.98);}
+.card{border:1px solid #e5e7eb;padding:16px;margin-top:18px;border-radius:8px;background:#f9fafb;}
+.tabs,.estimate-tabs{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px;}
+.tabs button,.estimate-tabs button{width:auto;margin-top:0;background:#e5e7eb;color:#111827;font-weight:500;}
+.tabs button:hover,.estimate-tabs button:hover{background:#d1d5db;}
+.small-btn{width:auto;padding:4px 8px;margin-left:4px;margin-top:0;font-size:12px;}
+.inline-input{width:160px;padding:4px 6px;margin-top:0;margin-right:4px;}
+.inline-qty{width:80px;padding:4px 6px;margin-top:0;margin-right:4px;}
+ul{list-style:none;margin-top:8px;}
+li{margin-bottom:6px;}
+.summary-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.summary-actions button{flex:1 1 180px;}
+#ordersList .card,#estimateHistoryList .card{cursor:pointer;transition:background 0.15s ease,transform 0.05s ease;}
+#ordersList .card:hover,#estimateHistoryList .card:hover{background:#eef2ff;transform:translateY(-1px);}
+.total-box{background:#eef6ff;border:1px solid #bfdbfe;padding:12px;border-radius:8px;margin-top:10px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.section-note{font-size:13px;color:#6b7280;margin-top:6px;}
+.hidden{display:none;}
+@media (max-width:700px){body{padding:10px;}.container{padding:12px;}.card{padding:12px;}.inline-input{width:120px;}.grid-2{grid-template-columns:1fr;}}
 </style>
 </head>
-
 <body>
-
 <div class="container">
 <h1>System Serwisowy</h1>
 
@@ -186,7 +53,6 @@ li{
 <button onclick="showTab('estimate')">Kosztorys</button>
 </div>
 
-<!-- ================= ZLECENIE ================= -->
 <div id="order">
 <div class="card">
 <h3>Dane klienta</h3>
@@ -256,7 +122,6 @@ li{
 </div>
 </div>
 
-<!-- ================= HISTORIA ================= -->
 <div id="history" style="display:none">
 <h2>Historia zleceń</h2>
 <input id="search" placeholder="Szukaj klienta" oninput="renderOrders()">
@@ -265,7 +130,6 @@ li{
 <div id="orderDetails" style="margin-top:8px;"></div>
 </div>
 
-<!-- ================= MAGAZYN ================= -->
 <div id="warehouse" style="display:none">
 <h2>Magazyn</h2>
 <div class="card">
@@ -278,15 +142,21 @@ li{
 <ul id="warehouseList"></ul>
 </div>
 
-<!-- ================= KOSZTORYS ================= -->
 <div id="estimate" style="display:none">
 <h2>Kosztorys</h2>
 
+<div class="estimate-tabs">
+<button onclick="showEstimateSection('estimateFormSection')">Dodaj kosztorys</button>
+<button onclick="showEstimateSection('estimateHistorySection')">Historia kosztorysów</button>
+</div>
+
+<div id="estimateFormSection">
 <div class="card">
     <h3>Dane klienta do kosztorysu</h3>
-    <input id="estClientName" placeholder="Imię i nazwisko klienta">
-    <input id="estClientPhone" placeholder="Telefon">
-    <input id="estDeviceName" placeholder="Maszyna/Urządzenie">
+    <p class="section-note">Pola opcjonalne — możesz zapisać kosztorys także bez danych klienta.</p>
+    <input id="estClientName" placeholder="Imię i nazwisko klienta (opcjonalnie)">
+    <input id="estClientPhone" placeholder="Telefon (opcjonalnie)">
+    <input id="estDeviceName" placeholder="Maszyna/Urządzenie (opcjonalnie)">
 </div>
 
 <div class="card">
@@ -319,30 +189,42 @@ li{
         <p>Usługa: <span id="estimateSummaryService">0</span> zł</p>
         <p><strong>Razem: <span id="estimateTotal">0</span> zł</strong></p>
     </div>
-
     <div class="summary-actions">
         <button onclick="saveEstimate()">Zapisz kosztorys</button>
+        <button onclick="generateEstimatePDF()">PDF kosztorysu</button>
+        <button onclick="clearEstimateForm()">Wyczyść formularz</button>
     </div>
 </div>
+</div>
 
-</div> <!-- container -->
+<div id="estimateHistorySection" style="display:none;">
+    <div class="card">
+        <h3>Historia kosztorysów</h3>
+        <input id="estimateSearch" placeholder="Szukaj klienta / numeru" oninput="renderEstimates()">
+        <div id="estimateHistoryList"></div>
+    </div>
+    <div class="card">
+        <h3>Szczegóły kosztorysu</h3>
+        <div id="estimateDetails"></div>
+    </div>
+</div>
+</div>
+</div>
 
 <script>
-// ----------------- SUPABASE -----------------
 const SUPABASE_URL = "https://avgrfeghycrsawaoiiil.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2Z3JmZWdoeWNyc2F3YW9paWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzQ4MTAsImV4cCI6MjA5MDAxMDgxMH0.q2HguQj2veHNuvyE9YC8XATymfa2pcRrVtW8mEpJJ-c";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ----------------- STANY -----------------
 let dailyHours=[], parts=[], travels=[], warehouse=[], orders=[], activities=[];
 let todos = [];
+let estimates = [];
 let estimateParts = [];
 let estimateTasks = [];
 let orderNumber = null;
 let currentOrderId = null;
 let currentOrderNumber = null;
-let currentEstimateId = null;
-    
+
 function normalizeArrayField(value){
     if (!value) return [];
     if (Array.isArray(value)) return value;
@@ -370,9 +252,7 @@ async function generateOrderNumber(){
         .ilike("order_number", `${datePrefix}-%`);
 
     const countForDay = (error || !data) ? 0 : data.length;
-    const sequence = countForDay + 1;
-
-    return `${datePrefix}-${sequence}`;
+    return `${datePrefix}-${countForDay + 1}`;
 }
 
 async function initOrderNumber(){
@@ -398,7 +278,6 @@ function setEditMode(isEdit){
     }
 }
 
-// ----------------- FUNKCJE OGÓLNE -----------------
 function showTab(tab){
     document.getElementById("order").style.display="none";
     document.getElementById("history").style.display="none";
@@ -408,14 +287,18 @@ function showTab(tab){
 }
 window.showTab = showTab;
 
+function showEstimateSection(sectionId){
+    document.getElementById("estimateFormSection").style.display = "none";
+    document.getElementById("estimateHistorySection").style.display = "none";
+    document.getElementById(sectionId).style.display = "block";
+    if(sectionId === "estimateHistorySection") renderEstimates();
+}
+window.showEstimateSection = showEstimateSection;
+
 function fillClientData(){
     const nameInput = document.getElementById("clientName").value.trim();
     if(!nameInput) return;
-
-    const client = orders.find(o =>
-        (o.client_name || "").toLowerCase() === nameInput.toLowerCase()
-    );
-
+    const client = orders.find(o => (o.client_name || "").toLowerCase() === nameInput.toLowerCase());
     if(client){
         document.getElementById("clientPhone").value = client.client_phone || "";
         document.getElementById("deviceName").value = client.device_name || "";
@@ -425,28 +308,16 @@ function fillClientData(){
 async function fillPartPriceFromWarehouse(){
     const partInput = document.getElementById("partName").value.trim();
     if(!partInput) return;
-
-    const { data, error } = await supabaseClient
-        .from("warehouse")
-        .select("price")
-        .ilike("name", partInput);
-
-    if(error){
-        console.log("Warehouse price fetch error", error);
-        return;
-    }
-
-    if(data && data.length > 0 && typeof data[0].price === "number"){
-        document.getElementById("partPrice").value = data[0].price;
-    }
+    const { data, error } = await supabaseClient.from("warehouse").select("price").ilike("name", partInput);
+    if(error){ console.log("Warehouse price fetch error", error); return; }
+    if(data && data.length > 0 && typeof data[0].price === "number") document.getElementById("partPrice").value = data[0].price;
 }
 
-// ---------- GODZINY ----------
 function addHours(){
     const date=document.getElementById("workDate").value;
     const hours=parseFloat(document.getElementById("hoursInput").value);
     if(!date || isNaN(hours)) return;
-    dailyHours.push({date:date,hours:hours});
+    dailyHours.push({date,hours});
     document.getElementById("hoursInput").value="";
     renderHours();
 }
@@ -460,16 +331,9 @@ function renderHours(){
     });
     calculate();
 }
-function editHours(i,value){
-    dailyHours[i].hours=Number(value);
-    calculate();
-}
-function removeHours(i){
-    dailyHours.splice(i,1);
-    renderHours();
-}
+function editHours(i,value){ dailyHours[i].hours=Number(value); calculate(); }
+function removeHours(i){ dailyHours.splice(i,1); renderHours(); }
 
-// ---------- CZĘŚCI ----------
 function addPart(){
     const name=document.getElementById("partName").value;
     const price=parseFloat(document.getElementById("partPrice").value);
@@ -481,47 +345,29 @@ function addPart(){
     document.getElementById("partQty").value="1";
     renderParts();
 }
-
-function removePart(index){
-    parts.splice(index,1);
-    renderParts();
-}
-
+function removePart(index){ parts.splice(index,1); renderParts(); }
 function editPart(index, field, value){
-    if(field === 'name'){
-        parts[index].name = value;
-    }else if(field === 'price'){
-        parts[index].price = parseFloat(value) || 0;
-    }else if(field === 'qty'){
-        parts[index].qty = parseInt(value) || 0;
-    }
+    if(field === 'name') parts[index].name = value;
+    else if(field === 'price') parts[index].price = parseFloat(value) || 0;
+    else if(field === 'qty') parts[index].qty = parseInt(value) || 0;
     calculate();
     renderParts();
 }
-
 function renderParts(){
     const list=document.getElementById("partsListUl");
     list.innerHTML="";
     parts.forEach((p,i)=>{
         const li=document.createElement("li");
         li.innerHTML = `
-            <input type="text" value="${p.name}"
-                   onchange="editPart(${i}, 'name', this.value)"
-                   class="inline-input">
-            ilość: <input type="number" value="${p.qty}"
-                          onchange="editPart(${i}, 'qty', this.value)"
-                          class="inline-qty">
-            cena: <input type="number" value="${p.price}"
-                         onchange="editPart(${i}, 'price', this.value)"
-                         class="inline-qty"> zł
-            <button class="small-btn" onclick="removePart(${i})">Usuń</button>
-        `;
+            <input type="text" value="${p.name}" onchange="editPart(${i}, 'name', this.value)" class="inline-input">
+            ilość: <input type="number" value="${p.qty}" onchange="editPart(${i}, 'qty', this.value)" class="inline-qty">
+            cena: <input type="number" value="${p.price}" onchange="editPart(${i}, 'price', this.value)" class="inline-qty"> zł
+            <button class="small-btn" onclick="removePart(${i})">Usuń</button>`;
         list.appendChild(li);
     });
     calculate();
 }
 
-// ---------- WYKONANE CZYNNOŚCI ----------
 function addActivity(){
     const desc = document.getElementById("activityDesc").value.trim();
     if(!desc) return;
@@ -529,135 +375,58 @@ function addActivity(){
     document.getElementById("activityDesc").value = "";
     renderActivities();
 }
-
-function editActivity(index, value){
-    activities[index] = value;
-}
-
-function removeActivity(index){
-    activities.splice(index, 1);
-    renderActivities();
-}
-
+function editActivity(index, value){ activities[index] = value; }
+function removeActivity(index){ activities.splice(index, 1); renderActivities(); }
 function renderActivities(){
     const list = document.getElementById("activitiesList");
     list.innerHTML = "";
     activities.forEach((act, i) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${act}"
-                   onchange="editActivity(${i}, this.value)"
-                   style="width:calc(100% - 80px); margin-right:4px;">
-            <button class="small-btn" onclick="removeActivity(${i})">Usuń</button>
-        `;
+        li.innerHTML = `<input type="text" value="${act}" onchange="editActivity(${i}, this.value)" style="width:calc(100% - 80px); margin-right:4px;"><button class="small-btn" onclick="removeActivity(${i})">Usuń</button>`;
         list.appendChild(li);
     });
 }
 
-// ---------- LISTA DO ZROBIENIA ----------
 async function loadTodosForOrder(orderNum){
     if(!orderNum) return;
-    const { data, error } = await supabaseClient
-        .from("todos")
-        .select("*")
-        .eq("order_number", orderNum)
-        .order("created_at", { ascending: true });
-
-    if(error){
-        console.log("Błąd ładowania TODO:", error);
-        return;
-    }
-
+    const { data, error } = await supabaseClient.from("todos").select("*").eq("order_number", orderNum).order("created_at", { ascending: true });
+    if(error){ console.log("Błąd ładowania TODO:", error); return; }
     todos = data || [];
     renderTodos();
 }
-
 function renderTodos(){
     const list = document.getElementById("todoList");
     if(!list) return;
     list.innerHTML = "";
-
     todos.forEach((t, i) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="checkbox" ${t.done ? "checked" : ""} 
-                   onchange="toggleTodoDone(${i}, this.checked)">
-            <span style="${t.done ? "text-decoration: line-through; color: gray;" : ""}">
-                ${t.text}
-            </span>
-            <button class="small-btn" onclick="deleteTodo(${i})">Usuń</button>
-        `;
+        li.innerHTML = `<input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTodoDone(${i}, this.checked)"><span style="${t.done ? "text-decoration: line-through; color: gray;" : ""}">${t.text}</span><button class="small-btn" onclick="deleteTodo(${i})">Usuń</button>`;
         list.appendChild(li);
     });
 }
-
 async function addTodo(){
     const input = document.getElementById("todoText");
     const text = input.value.trim();
     if(!text) return;
-
     const orderNum = orderNumber;
-    if(!orderNum){
-        alert("Brak numeru zlecenia");
-        return;
-    }
-
-    const { data, error } = await supabaseClient
-        .from("todos")
-        .insert([{ order_number: orderNum, text, done: false }])
-        .select();
-
-    if(error){
-        console.log("Błąd dodawania TODO:", error);
-        alert("Błąd dodawania zadania");
-        return;
-    }
-
-    todos.push(data[0]);
-    renderTodos();
-    input.value = "";
+    if(!orderNum){ alert("Brak numeru zlecenia"); return; }
+    const { data, error } = await supabaseClient.from("todos").insert([{ order_number: orderNum, text, done: false }]).select();
+    if(error){ console.log("Błąd dodawania TODO:", error); alert("Błąd dodawania zadania"); return; }
+    todos.push(data[0]); renderTodos(); input.value = "";
 }
-
 async function toggleTodoDone(index, checked){
-    const todo = todos[index];
-    if(!todo) return;
-
-    const { error } = await supabaseClient
-        .from("todos")
-        .update({ done: checked })
-        .eq("id", todo.id);
-
-    if(error){
-        console.log("Błąd aktualizacji TODO:", error);
-        alert("Błąd aktualizacji zadania");
-        renderTodos();
-        return;
-    }
-
-    todos[index].done = checked;
-    renderTodos();
+    const todo = todos[index]; if(!todo) return;
+    const { error } = await supabaseClient.from("todos").update({ done: checked }).eq("id", todo.id);
+    if(error){ console.log("Błąd aktualizacji TODO:", error); alert("Błąd aktualizacji zadania"); renderTodos(); return; }
+    todos[index].done = checked; renderTodos();
 }
-
 async function deleteTodo(index){
-    const todo = todos[index];
-    if(!todo) return;
-
-    const { error } = await supabaseClient
-        .from("todos")
-        .delete()
-        .eq("id", todo.id);
-
-    if(error){
-        console.log("Błąd usuwania TODO:", error);
-        alert("Błąd usuwania zadania");
-        return;
-    }
-
-    todos.splice(index, 1);
-    renderTodos();
+    const todo = todos[index]; if(!todo) return;
+    const { error } = await supabaseClient.from("todos").delete().eq("id", todo.id);
+    if(error){ console.log("Błąd usuwania TODO:", error); alert("Błąd usuwania zadania"); return; }
+    todos.splice(index, 1); renderTodos();
 }
 
-// ---------- KM ----------
 function addKm(){
     const km=parseFloat(document.getElementById("kmInput").value);
     if(isNaN(km) || km<=0) return;
@@ -675,12 +444,8 @@ function renderKm(){
     });
     calculate();
 }
-function removeKm(i){
-    travels.splice(i,1);
-    renderKm();
-}
+function removeKm(i){ travels.splice(i,1); renderKm(); }
 
-// ---------- KALKULACJA ----------
 function calculate(){
     const laborRate=parseFloat(document.getElementById("laborRate").value || "0");
     const kmRate=parseFloat(document.getElementById("kmRate").value || "0");
@@ -697,483 +462,219 @@ function calculate(){
     document.getElementById("totalCost").innerText=total.toFixed(2);
 }
 
-// ---------- ZAPIS NOWEGO ZLECENIA ----------
 async function saveOrder(){
-    const clientName=document.getElementById("clientName").value;
-    const clientPhone=document.getElementById("clientPhone").value;
-    const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText || "0");
-
     const order={
         order_number:orderNumber,
-        client_name:clientName,
-        client_phone:clientPhone,
-        device_name:deviceName,
+        client_name:document.getElementById("clientName").value,
+        client_phone:document.getElementById("clientPhone").value,
+        device_name:document.getElementById("deviceName").value,
         parts:[...parts],
         hours:[...dailyHours],
         travels:[...travels],
         activities:[...activities],
-        total:total
+        total:parseFloat(document.getElementById("totalCost").innerText || "0")
     };
-
     const {error}=await supabaseClient.from("orders").insert([order]);
-
-    if(error){
-        console.log(error);
-        alert("Blad zapisu do bazy");
-        return;
-    }
-
+    if(error){ console.log(error); alert("Blad zapisu do bazy"); return; }
     await applyWarehouseUsage(parts);
-
     alert("Zlecenie zapisane w bazie");
     clearForm();
     renderOrders();
 }
 
-// ---------- UPDATE ISTNIEJĄCEGO ZLECENIA ----------
 async function updateOrder(){
-    if(currentOrderId === null){
-        alert("Brak wybranego zlecenia do edycji");
-        return;
-    }
-
-    const clientName=document.getElementById("clientName").value;
-    const clientPhone=document.getElementById("clientPhone").value;
-    const deviceName=document.getElementById("deviceName").value;
-    const total=parseFloat(document.getElementById("totalCost").innerText || "0");
-
+    if(currentOrderId === null){ alert("Brak wybranego zlecenia do edycji"); return; }
     const updatedOrder = {
-        client_name:clientName,
-        client_phone:clientPhone,
-        device_name:deviceName,
+        client_name:document.getElementById("clientName").value,
+        client_phone:document.getElementById("clientPhone").value,
+        device_name:document.getElementById("deviceName").value,
         parts:[...parts],
         hours:[...dailyHours],
         travels:[...travels],
         activities:[...activities],
-        total:total
+        total:parseFloat(document.getElementById("totalCost").innerText || "0")
     };
-
-    const {error} = await supabaseClient
-        .from("orders")
-        .update(updatedOrder)
-        .eq("id", currentOrderId);
-
-    if(error){
-        console.log(error);
-        alert("Blad aktualizacji zlecenia");
-        return;
-    }
-
+    const {error} = await supabaseClient.from("orders").update(updatedOrder).eq("id", currentOrderId);
+    if(error){ console.log(error); alert("Blad aktualizacji zlecenia"); return; }
     alert("Zlecenie zaktualizowane");
-    setEditMode(false);
-    clearForm();
-    renderOrders();
+    setEditMode(false); clearForm(); renderOrders();
 }
 
-// ---------- RESET FORMULARZA ----------
 function clearForm(){
     dailyHours=[]; parts=[]; travels=[]; activities=[]; todos=[];
     renderHours(); renderParts(); renderKm(); renderActivities(); renderTodos();
     document.getElementById("clientName").value="";
     document.getElementById("clientPhone").value="";
     document.getElementById("deviceName").value="";
-    initOrderNumber();
-    setEditMode(false);
+    initOrderNumber(); setEditMode(false);
 }
 
-// ---------- HISTORIA ----------
 async function renderOrders(){
-    const {data,error}=await supabaseClient
-        .from("orders")
-        .select("*")
-        .order("id",{ascending:false});
-
-    if(error){
-        console.log("renderOrders error:", error);
-        alert("Błąd historii: " + error.message);
-        return;
-    }
-
+    const {data,error}=await supabaseClient.from("orders").select("*").order("id",{ascending:false});
+    if(error){ console.log("renderOrders error:", error); alert("Błąd historii: " + error.message); return; }
     orders=data || [];
     const search=document.getElementById("search").value?.toLowerCase() || "";
     const list=document.getElementById("ordersList");
     list.innerHTML="";
-    orders
-    .filter(o=>(o.client_name||"").toLowerCase().includes(search))
-    .forEach(o=>{
+    orders.filter(o=>(o.client_name||"").toLowerCase().includes(search)).forEach(o=>{
         const div=document.createElement("div");
         div.className="card";
-        div.innerHTML=`Numer: ${o.order_number}<br>
-        Klient: ${o.client_name}<br>
-        Koszt: ${o.total} zl<br>
-        <button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button>
-        <button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button>
-        <button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button>
-        <button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
+        div.innerHTML=`Numer: ${o.order_number}<br>Klient: ${o.client_name}<br>Koszt: ${o.total} zl<br><button class="small-btn" onclick="showOrder('${o.order_number}')">Podglad</button><button class="small-btn" onclick="editOrder('${o.order_number}')">Edytuj</button><button class="small-btn" onclick="deleteOrder(${o.id})">Usun</button><button class="small-btn" onclick="generatePdfFromHistory('${o.order_number}')">Utworz PDF</button>`;
         list.appendChild(div);
     });
-
     updateClientsSuggestions();
 }
 
 async function showOrder(num){
-    const o=orders.find(x=>x.order_number===num);
-    if(!o) return;
-
-    const oParts      = normalizeArrayField(o.parts);
+    const o=orders.find(x=>x.order_number===num); if(!o) return;
+    const oParts = normalizeArrayField(o.parts);
     const oActivities = normalizeArrayField(o.activities);
-    const oHours      = normalizeArrayField(o.hours);
-    const oTravels    = normalizeArrayField(o.travels);
-
-    const { data: todosData, error: todosError } = await supabaseClient
-        .from("todos")
-        .select("*")
-        .eq("order_number", num)
-        .order("created_at", { ascending: true });
-
-    if(todosError){
-        console.log("Błąd ładowania TODO do historii:", todosError);
-    }
-
+    const oHours = normalizeArrayField(o.hours);
+    const oTravels = normalizeArrayField(o.travels);
+    const { data: todosData } = await supabaseClient.from("todos").select("*").eq("order_number", num).order("created_at", { ascending: true });
     const todosHistory = todosData || [];
-
-    const div=document.getElementById("orderDetails");
-    div.innerHTML=`
-    <h3>${o.order_number}</h3>
-    Numer zlecenia: ${o.order_number}<br>
-    Klient: ${o.client_name}<br>
-    Telefon: ${o.client_phone}<br>
-    Maszyna/Urzadzenie: ${o.device_name}<br>
-    <h4>Czesci</h4>
-    ${oParts.length ? oParts.map(p=>`${p.name} ${p.qty} x ${p.price} zl`).join("<br>"):""}
-    <h4>Wykonane czynnosci</h4>
-    ${oActivities.length ? oActivities.map(a=>`- ${a}`).join("<br>"):""}
-    <h4>Lista do zrobienia</h4>
-    ${todosHistory.length ? todosHistory.map(t => `${t.done ? "✅" : "⬜"} ${t.text}`).join("<br>") : "Brak zadań"}
-    <h4>Godziny</h4>
-    ${oHours.length ? oHours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}
-    <h4>Dojazd</h4>
-    ${oTravels.length ? oTravels.map(k=>`${k} km`).join("<br>"):""}
-    <h3>Razem: ${o.total} zl</h3>
-    `;
+    document.getElementById("orderDetails").innerHTML=`<h3>${o.order_number}</h3>Numer zlecenia: ${o.order_number}<br>Klient: ${o.client_name}<br>Telefon: ${o.client_phone}<br>Maszyna/Urzadzenie: ${o.device_name}<br><h4>Czesci</h4>${oParts.length ? oParts.map(p=>`${p.name} ${p.qty} x ${p.price} zl`).join("<br>"):""}<h4>Wykonane czynnosci</h4>${oActivities.length ? oActivities.map(a=>`- ${a}`).join("<br>"):""}<h4>Lista do zrobienia</h4>${todosHistory.length ? todosHistory.map(t => `${t.done ? "✅" : "⬜"} ${t.text}`).join("<br>") : "Brak zadań"}<h4>Godziny</h4>${oHours.length ? oHours.map(h=>`${h.date} ${h.hours}h`).join("<br>"):""}<h4>Dojazd</h4>${oTravels.length ? oTravels.map(k=>`${k} km`).join("<br>"):""}<h3>Razem: ${o.total} zl</h3>`;
 }
 
 async function editOrder(num){
     const o = orders.find(x => x.order_number === num);
-    console.log("editOrder, znalezione zlecenie =", o);
-
-    if(!o){
-        alert("Nie znaleziono zlecenia: " + num);
-        return;
-    }
-
+    if(!o){ alert("Nie znaleziono zlecenia: " + num); return; }
     showTab('order');
-
-    currentOrderId = o.id;
-    currentOrderNumber = o.order_number;
-
+    currentOrderId = o.id; currentOrderNumber = o.order_number;
     document.getElementById("clientName").value  = o.client_name  || "";
     document.getElementById("clientPhone").value = o.client_phone || "";
     document.getElementById("deviceName").value  = o.device_name  || "";
-
     orderNumber = o.order_number;
     document.getElementById("orderNumber").innerText = orderNumber;
-
     dailyHours = normalizeArrayField(o.hours);
-    parts      = normalizeArrayField(o.parts);
-    travels    = normalizeArrayField(o.travels);
+    parts = normalizeArrayField(o.parts);
+    travels = normalizeArrayField(o.travels);
     activities = normalizeArrayField(o.activities);
-
-    renderHours();
-    renderParts();
-    renderKm();
-    renderActivities();
-    calculate();
-
+    renderHours(); renderParts(); renderKm(); renderActivities(); calculate();
     await loadTodosForOrder(orderNumber);
     setEditMode(true);
 }
 
 function generatePdfFromHistory(orderNum){
-    const o = orders.find(x => x.order_number === orderNum);
-    if(!o) return;
-
+    const o = orders.find(x => x.order_number === orderNum); if(!o) return;
     orderNumber = o.order_number;
     document.getElementById("clientName").value = o.client_name || "";
     document.getElementById("clientPhone").value = o.client_phone || "";
     document.getElementById("deviceName").value = o.device_name || "";
-
     dailyHours = normalizeArrayField(o.hours);
-    parts      = normalizeArrayField(o.parts);
-    travels    = normalizeArrayField(o.travels);
+    parts = normalizeArrayField(o.parts);
+    travels = normalizeArrayField(o.travels);
     activities = normalizeArrayField(o.activities);
-
-    renderHours();
-    renderParts();
-    renderKm();
-    renderActivities();
-    calculate();
-
+    renderHours(); renderParts(); renderKm(); renderActivities(); calculate();
     generatePDF();
 }
 
 async function deleteOrder(id){
-    if(!id) return;
-    if(!confirm("Czy na pewno chcesz usunac to zlecenie?")) return;
-
-    const { error } = await supabaseClient
-        .from("orders")
-        .delete()
-        .eq("id", id);
-
-    if(error){
-        console.log("Delete order error", error);
-        alert("Blad usuwania zlecenia");
-        return;
-    }
-
-    if(currentOrderId === id){
-        clearForm();
-    }
-
+    if(!id || !confirm("Czy na pewno chcesz usunac to zlecenie?")) return;
+    const { error } = await supabaseClient.from("orders").delete().eq("id", id);
+    if(error){ console.log("Delete order error", error); alert("Blad usuwania zlecenia"); return; }
+    if(currentOrderId === id) clearForm();
     document.getElementById("orderDetails").innerHTML = "";
     renderOrders();
 }
 
 function updateClientsSuggestions(){
-    const datalist = document.getElementById("clientsList");
-    if(!datalist) return;
-
+    const datalist = document.getElementById("clientsList"); if(!datalist) return;
     const namesSet = new Set();
-    orders.forEach(o => {
-        if(o.client_name){
-            namesSet.add(o.client_name.trim());
-        }
-    });
-
+    orders.forEach(o => { if(o.client_name) namesSet.add(o.client_name.trim()); });
     datalist.innerHTML = "";
     Array.from(namesSet).sort().forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        datalist.appendChild(opt);
+        const opt = document.createElement("option"); opt.value = name; datalist.appendChild(opt);
     });
 }
 
-// ---------- MAGAZYN ----------
 async function loadWarehouse(){
-    const { data, error } = await supabaseClient
-        .from("warehouse")
-        .select("*")
-        .order("id", { ascending: true });
-
-    if(error){
-        console.log("Warehouse load error", error);
-        alert("Błąd wczytywania magazynu: " + error.message);
-        return;
-    }
-
-    warehouse = data || [];
-    renderWarehouse();
-    updatePartsSuggestions();
+    const { data, error } = await supabaseClient.from("warehouse").select("*").order("id", { ascending: true });
+    if(error){ console.log("Warehouse load error", error); alert("Błąd wczytywania magazynu: " + error.message); return; }
+    warehouse = data || []; renderWarehouse(); updatePartsSuggestions();
 }
-
 async function addWarehouse(){
     const name = document.getElementById("whName").value;
     const number = document.getElementById("whNumber").value;
     const qty = parseInt(document.getElementById("whQty").value);
     const price = parseFloat(document.getElementById("whPrice").value);
-
     if(!name || !number || isNaN(qty) || isNaN(price)) return;
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .insert([{
-            name,
-            number,
-            qty,
-            price,
-            created_at: new Date().toISOString()
-        }]);
-
-    if(error){
-        console.log("Warehouse insert error", error);
-        alert("Blad zapisu magazynu");
-        return;
-    }
-
+    const { error } = await supabaseClient.from("warehouse").insert([{ name, number, qty, price, created_at: new Date().toISOString() }]);
+    if(error){ console.log("Warehouse insert error", error); alert("Blad zapisu magazynu"); return; }
     document.getElementById("whName").value = "";
     document.getElementById("whNumber").value = "";
     document.getElementById("whQty").value = "";
     document.getElementById("whPrice").value = "";
-
     loadWarehouse();
 }
-
 async function editWarehouseItem(index, field, value){
-    const item = warehouse[index];
-    if(!item) return;
-
+    const item = warehouse[index]; if(!item) return;
     let newData = {};
-    if(field === 'name'){
-        newData.name = value;
-    }else if(field === 'number'){
-        newData.number = value;
-    }else if(field === 'qty'){
-        newData.qty = parseInt(value) || 0;
-    }else if(field === 'price'){
-        newData.price = parseFloat(value) || 0;
-    }
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .update(newData)
-        .eq("id", item.id);
-
-    if(error){
-        console.log("Warehouse update error", error);
-        alert("Blad aktualizacji magazynu");
-        return;
-    }
-
-    warehouse[index] = { ...item, ...newData };
-    renderWarehouse();
-    updatePartsSuggestions();
+    if(field === 'name') newData.name = value;
+    else if(field === 'number') newData.number = value;
+    else if(field === 'qty') newData.qty = parseInt(value) || 0;
+    else if(field === 'price') newData.price = parseFloat(value) || 0;
+    const { error } = await supabaseClient.from("warehouse").update(newData).eq("id", item.id);
+    if(error){ console.log("Warehouse update error", error); alert("Blad aktualizacji magazynu"); return; }
+    warehouse[index] = { ...item, ...newData }; renderWarehouse(); updatePartsSuggestions();
 }
-
 async function changeWarehouseQty(index, delta){
-    const item = warehouse[index];
-    if(!item) return;
-
+    const item = warehouse[index]; if(!item) return;
     const newQty = Math.max(0, (item.qty || 0) + delta);
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .update({ qty:newQty })
-        .eq("id", item.id);
-
-    if(error){
-        console.log("Warehouse qty update error", error);
-        alert("Blad zmiany ilosci");
-        return;
-    }
-
-    warehouse[index].qty = newQty;
-    renderWarehouse();
+    const { error } = await supabaseClient.from("warehouse").update({ qty:newQty }).eq("id", item.id);
+    if(error){ console.log("Warehouse qty update error", error); alert("Blad zmiany ilosci"); return; }
+    warehouse[index].qty = newQty; renderWarehouse();
 }
-
 async function removeWarehouse(index){
-    const item = warehouse[index];
-    if(!item) return;
-
-    const { error } = await supabaseClient
-        .from("warehouse")
-        .delete()
-        .eq("id", item.id);
-
-    if(error){
-        console.log("Warehouse delete error", error);
-        alert("Blad usuwania z magazynu");
-        return;
-    }
-
-    warehouse.splice(index,1);
-    renderWarehouse();
-    updatePartsSuggestions();
+    const item = warehouse[index]; if(!item) return;
+    const { error } = await supabaseClient.from("warehouse").delete().eq("id", item.id);
+    if(error){ console.log("Warehouse delete error", error); alert("Blad usuwania z magazynu"); return; }
+    warehouse.splice(index,1); renderWarehouse(); updatePartsSuggestions();
 }
-
 function renderWarehouse(){
-    const list=document.getElementById("warehouseList");
-    list.innerHTML="";
+    const list=document.getElementById("warehouseList"); list.innerHTML="";
     warehouse.forEach((p,i)=>{
         const li=document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${p.name}"
-                   onchange="editWarehouseItem(${i}, 'name', this.value)"
-                   class="inline-input">
-            <input type="text" value="${p.number}"
-                   onchange="editWarehouseItem(${i}, 'number', this.value)"
-                   class="inline-input">
-            ilosc:
-            <input type="number" value="${p.qty}"
-                   onchange="editWarehouseItem(${i}, 'qty', this.value)"
-                   class="inline-qty">
-            cena:
-            <input type="number" value="${p.price || 0}"
-                   onchange="editWarehouseItem(${i}, 'price', this.value)"
-                   class="inline-qty">
-            <button class="small-btn" onclick="changeWarehouseQty(${i}, 1)">+1</button>
-            <button class="small-btn" onclick="changeWarehouseQty(${i}, -1)">-1</button>
-            <button class="small-btn" onclick="removeWarehouse(${i})">Usun</button>
-        `;
+        li.innerHTML = `<input type="text" value="${p.name}" onchange="editWarehouseItem(${i}, 'name', this.value)" class="inline-input"><input type="text" value="${p.number}" onchange="editWarehouseItem(${i}, 'number', this.value)" class="inline-input"> ilosc: <input type="number" value="${p.qty}" onchange="editWarehouseItem(${i}, 'qty', this.value)" class="inline-qty"> cena: <input type="number" value="${p.price || 0}" onchange="editWarehouseItem(${i}, 'price', this.value)" class="inline-qty"><button class="small-btn" onclick="changeWarehouseQty(${i}, 1)">+1</button><button class="small-btn" onclick="changeWarehouseQty(${i}, -1)">-1</button><button class="small-btn" onclick="removeWarehouse(${i})">Usun</button>`;
         list.appendChild(li);
     });
 }
-
 function updatePartsSuggestions(){
-    const datalist = document.getElementById("partsList");
-    if(!datalist) return;
-
+    const datalist = document.getElementById("partsList"); if(!datalist) return;
     datalist.innerHTML = "";
     warehouse.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item.name;
-        opt.setAttribute("data-number", item.number);
-        opt.setAttribute("data-qty", item.qty);
-        opt.setAttribute("data-price", item.price || 0);
-        datalist.appendChild(opt);
+        const opt = document.createElement("option"); opt.value = item.name; datalist.appendChild(opt);
     });
 }
-
 async function applyWarehouseUsage(partsUsed){
     if(!Array.isArray(partsUsed) || partsUsed.length === 0) return;
-
     for(const used of partsUsed){
-        const partName = used.name;
-        const usedQty = used.qty || 0;
+        const partName = used.name; const usedQty = used.qty || 0;
         if(!partName || usedQty <= 0) continue;
-
-        const itemIndex = warehouse.findIndex(
-            w => (w.name || "").toLowerCase() === partName.toLowerCase()
-        );
+        const itemIndex = warehouse.findIndex(w => (w.name || "").toLowerCase() === partName.toLowerCase());
         if(itemIndex === -1) continue;
         const item = warehouse[itemIndex];
-
         const newQty = Math.max(0, (item.qty || 0) - usedQty);
-
-        const { error } = await supabaseClient
-            .from("warehouse")
-            .update({ qty: newQty })
-            .eq("id", item.id);
-
-        if(error){
-            console.log("Warehouse auto usage error", error);
-            continue;
-        }
-
+        const { error } = await supabaseClient.from("warehouse").update({ qty: newQty }).eq("id", item.id);
+        if(error){ console.log("Warehouse auto usage error", error); continue; }
         warehouse[itemIndex].qty = newQty;
     }
     renderWarehouse();
 }
 
-// ---------- KOSZTORYS ----------
 function addEstimatePart(){
     const name = document.getElementById("estPartName").value.trim();
     const number = document.getElementById("estPartNumber").value.trim();
     const price = parseFloat(document.getElementById("estPartPrice").value);
     const qty = parseInt(document.getElementById("estPartQty").value);
-
     if(!name || isNaN(price) || isNaN(qty) || qty <= 0) return;
-
     estimateParts.push({ name, number, price, qty });
     document.getElementById("estPartName").value = "";
     document.getElementById("estPartNumber").value = "";
     document.getElementById("estPartPrice").value = "";
     document.getElementById("estPartQty").value = "1";
-
     renderEstimateParts();
 }
-
 function editEstimatePart(index, field, value){
     if(field === "name") estimateParts[index].name = value;
     if(field === "number") estimateParts[index].number = value;
@@ -1181,41 +682,16 @@ function editEstimatePart(index, field, value){
     if(field === "qty") estimateParts[index].qty = parseInt(value) || 0;
     renderEstimateParts();
 }
-
-function removeEstimatePart(index){
-    estimateParts.splice(index, 1);
-    renderEstimateParts();
-}
-
+function removeEstimatePart(index){ estimateParts.splice(index, 1); renderEstimateParts(); }
 function renderEstimateParts(){
-    const list = document.getElementById("estimatePartsList");
-    list.innerHTML = "";
-
+    const list = document.getElementById("estimatePartsList"); list.innerHTML = "";
     estimateParts.forEach((p, i) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${p.name}"
-                   onchange="editEstimatePart(${i}, 'name', this.value)"
-                   class="inline-input">
-            <input type="text" value="${p.number}"
-                   onchange="editEstimatePart(${i}, 'number', this.value)"
-                   class="inline-input">
-            ilość:
-            <input type="number" value="${p.qty}"
-                   onchange="editEstimatePart(${i}, 'qty', this.value)"
-                   class="inline-qty">
-            cena:
-            <input type="number" value="${p.price}"
-                   onchange="editEstimatePart(${i}, 'price', this.value)"
-                   class="inline-qty"> zł
-            <button class="small-btn" onclick="removeEstimatePart(${i})">Usuń</button>
-        `;
+        li.innerHTML = `<input type="text" value="${p.name}" onchange="editEstimatePart(${i}, 'name', this.value)" class="inline-input"><input type="text" value="${p.number}" onchange="editEstimatePart(${i}, 'number', this.value)" class="inline-input"> ilość: <input type="number" value="${p.qty}" onchange="editEstimatePart(${i}, 'qty', this.value)" class="inline-qty"> cena: <input type="number" value="${p.price}" onchange="editEstimatePart(${i}, 'price', this.value)" class="inline-qty"> zł <button class="small-btn" onclick="removeEstimatePart(${i})">Usuń</button>`;
         list.appendChild(li);
     });
-
     calculateEstimate();
 }
-
 function addEstimateTask(){
     const text = document.getElementById("estTaskText").value.trim();
     if(!text) return;
@@ -1223,104 +699,188 @@ function addEstimateTask(){
     document.getElementById("estTaskText").value = "";
     renderEstimateTasks();
 }
-
-function editEstimateTask(index, value){
-    estimateTasks[index] = value;
-}
-
-function removeEstimateTask(index){
-    estimateTasks.splice(index, 1);
-    renderEstimateTasks();
-}
-
+function editEstimateTask(index, value){ estimateTasks[index] = value; }
+function removeEstimateTask(index){ estimateTasks.splice(index, 1); renderEstimateTasks(); }
 function renderEstimateTasks(){
-    const list = document.getElementById("estimateTasksList");
-    list.innerHTML = "";
-
+    const list = document.getElementById("estimateTasksList"); list.innerHTML = "";
     estimateTasks.forEach((t, i) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-            <input type="text" value="${t}"
-                   onchange="editEstimateTask(${i}, this.value)"
-                   style="width:calc(100% - 80px); margin-right:4px;">
-            <button class="small-btn" onclick="removeEstimateTask(${i})">Usuń</button>
-        `;
+        li.innerHTML = `<input type="text" value="${t}" onchange="editEstimateTask(${i}, this.value)" style="width:calc(100% - 80px); margin-right:4px;"><button class="small-btn" onclick="removeEstimateTask(${i})">Usuń</button>`;
         list.appendChild(li);
     });
-
     calculateEstimate();
 }
-
 function calculateEstimate(){
     const partsCost = estimateParts.reduce((sum, p) => sum + ((p.price || 0) * (p.qty || 0)), 0);
     const servicePrice = parseFloat(document.getElementById("estServicePrice").value || "0");
     const total = partsCost + servicePrice;
-
     document.getElementById("estimatePartsCost").innerText = partsCost.toFixed(2);
     document.getElementById("estimateSummaryParts").innerText = partsCost.toFixed(2);
     document.getElementById("estimateSummaryService").innerText = servicePrice.toFixed(2);
     document.getElementById("estimateTotal").innerText = total.toFixed(2);
 }
-    
-   async function saveEstimate(){
+async function saveEstimate(){
     const clientName = document.getElementById("estClientName").value.trim();
     const clientPhone = document.getElementById("estClientPhone").value.trim();
     const deviceName = document.getElementById("estDeviceName").value.trim();
     const servicePrice = parseFloat(document.getElementById("estServicePrice").value || "0");
     const total = parseFloat(document.getElementById("estimateTotal").innerText || "0");
-
-    if(!clientName){
-        alert("Wpisz nazwę klienta w formularzu kosztorysu");
-        return;
-    }
-
-    if(estimateParts.length === 0 && estimateTasks.length === 0 && servicePrice <= 0){
-        alert("Kosztorys jest pusty");
-        return;
-    }
-
+    if(estimateParts.length === 0 && estimateTasks.length === 0 && servicePrice <= 0){ alert("Kosztorys jest pusty"); return; }
     const estimate = {
         order_number: orderNumber,
-        client_name: clientName,
-        client_phone: clientPhone,
-        device_name: deviceName,
+        client_name: clientName || null,
+        client_phone: clientPhone || null,
+        device_name: deviceName || null,
         parts: [...estimateParts],
         tasks: [...estimateTasks],
         service_price: servicePrice,
         total: total
     };
-
-    const { error } = await supabaseClient
-        .from("estimates")
-        .insert([estimate]);
-
-    if(error){
-        console.log("Estimate save error", error);
-        alert("Błąd zapisu kosztorysu");
-        return;
-    }
-
+    const { error } = await supabaseClient.from("estimates").insert([estimate]);
+    if(error){ console.log("Estimate save error", error); alert("Błąd zapisu kosztorysu"); return; }
     alert("Kosztorys zapisany");
+    clearEstimateForm();
+    renderEstimates();
+    showEstimateSection('estimateHistorySection');
 }
-
-// ---------- PDF ----------
+function clearEstimateForm(){
+    estimateParts = [];
+    estimateTasks = [];
+    document.getElementById("estClientName").value = "";
+    document.getElementById("estClientPhone").value = "";
+    document.getElementById("estDeviceName").value = "";
+    document.getElementById("estPartName").value = "";
+    document.getElementById("estPartNumber").value = "";
+    document.getElementById("estPartPrice").value = "";
+    document.getElementById("estPartQty").value = "1";
+    document.getElementById("estTaskText").value = "";
+    document.getElementById("estServicePrice").value = "0";
+    renderEstimateParts();
+    renderEstimateTasks();
+    calculateEstimate();
+}
+async function renderEstimates(){
+    const { data, error } = await supabaseClient.from("estimates").select("*").order("id", { ascending: false });
+    if(error){ console.log("Estimates load error", error); return; }
+    estimates = data || [];
+    const search = (document.getElementById("estimateSearch")?.value || "").toLowerCase();
+    const list = document.getElementById("estimateHistoryList");
+    list.innerHTML = "";
+    estimates.filter(e => `${e.client_name || ''} ${e.order_number || ''}`.toLowerCase().includes(search)).forEach(e => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `Numer: ${e.order_number || '-'}<br>Klient: ${e.client_name || 'brak'}<br>Razem: ${Number(e.total || 0).toFixed(2)} zł<br><button class="small-btn" onclick="showEstimateDetails(${e.id})">Podgląd</button><button class="small-btn" onclick="generateEstimatePdfFromHistory(${e.id})">PDF</button><button class="small-btn" onclick="deleteEstimate(${e.id})">Usuń</button>`;
+        list.appendChild(div);
+    });
+}
+function showEstimateDetails(id){
+    const e = estimates.find(x => x.id === id);
+    if(!e) return;
+    const partsArr = normalizeArrayField(e.parts);
+    const tasksArr = normalizeArrayField(e.tasks);
+    document.getElementById("estimateDetails").innerHTML = `
+        <h3>Kosztorys #${e.id}</h3>
+        Numer zlecenia: ${e.order_number || '-'}<br>
+        Klient: ${e.client_name || 'brak'}<br>
+        Telefon: ${e.client_phone || 'brak'}<br>
+        Maszyna/Urządzenie: ${e.device_name || 'brak'}<br>
+        <h4 style="margin-top:10px;">Części</h4>
+        ${partsArr.length ? partsArr.map(p => `${p.name} | nr: ${p.number || '-'} | ${p.qty} x ${Number(p.price || 0).toFixed(2)} zł`).join('<br>') : 'Brak części'}
+        <h4 style="margin-top:10px;">Zakres czynności</h4>
+        ${tasksArr.length ? tasksArr.map(t => '- ' + t).join('<br>') : 'Brak czynności'}
+        <h4 style="margin-top:10px;">Usługa</h4>
+        ${Number(e.service_price || 0).toFixed(2)} zł
+        <h3 style="margin-top:10px;">Razem: ${Number(e.total || 0).toFixed(2)} zł</h3>`;
+}
+async function deleteEstimate(id){
+    if(!confirm("Usunąć kosztorys?")) return;
+    const { error } = await supabaseClient.from("estimates").delete().eq("id", id);
+    if(error){ console.log("Delete estimate error", error); alert("Błąd usuwania kosztorysu"); return; }
+    document.getElementById("estimateDetails").innerHTML = "";
+    renderEstimates();
+}
 function stripPolishChars(text){
     if(!text) return "";
-    const map = {
-        'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z',
-        'Ą':'A','Ć':'C','Ę':'E','Ł':'L','Ń':'N','Ó':'O','Ś':'S','Ź':'Z','Ż':'Z'
-    };
+    const map = {'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z','Ą':'A','Ć':'C','Ę':'E','Ł':'L','Ń':'N','Ó':'O','Ś':'S','Ź':'Z','Ż':'Z'};
     return text.split("").map(ch => map[ch] || ch).join("");
 }
-
+function generateEstimatePDF(){
+    const estimateData = {
+        id: 'NOWY',
+        order_number: orderNumber,
+        client_name: document.getElementById("estClientName").value.trim(),
+        client_phone: document.getElementById("estClientPhone").value.trim(),
+        device_name: document.getElementById("estDeviceName").value.trim(),
+        parts: [...estimateParts],
+        tasks: [...estimateTasks],
+        service_price: parseFloat(document.getElementById("estServicePrice").value || "0"),
+        total: parseFloat(document.getElementById("estimateTotal").innerText || "0")
+    };
+    buildEstimatePDF(estimateData);
+}
+function generateEstimatePdfFromHistory(id){
+    const estimateData = estimates.find(x => x.id === id);
+    if(!estimateData) return;
+    buildEstimatePDF(estimateData);
+}
+function buildEstimatePDF(estimateData){
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const partsArr = normalizeArrayField(estimateData.parts);
+    const tasksArr = normalizeArrayField(estimateData.tasks);
+    let y = 20;
+    doc.setFontSize(20);
+    doc.text('KOSZTORYS NAPRAWY', 105, y, {align:'center'});
+    y += 10;
+    doc.setFontSize(10);
+    doc.text('Numer zlecenia: ' + stripPolishChars(estimateData.order_number || '-'), 15, y);
+    y += 8;
+    doc.text('Klient: ' + stripPolishChars(estimateData.client_name || 'brak'), 15, y);
+    y += 6;
+    doc.text('Telefon: ' + stripPolishChars(estimateData.client_phone || 'brak'), 15, y);
+    y += 6;
+    doc.text('Maszyna/Urzadzenie: ' + stripPolishChars(estimateData.device_name || 'brak'), 15, y);
+    y += 10;
+    if(partsArr.length){
+        doc.text('Czesci', 15, y);
+        y += 4;
+        doc.autoTable({
+            startY:y,
+            head:[['Nazwa','Numer','Ilosc','Cena','Razem']],
+            body:partsArr.map(p => [stripPolishChars(p.name || ''), stripPolishChars(p.number || ''), String(p.qty || 0), `${Number(p.price || 0).toFixed(2)} zl`, `${(Number(p.price || 0) * Number(p.qty || 0)).toFixed(2)} zl`]),
+            theme:'striped',
+            headStyles:{fillColor:[37,99,235],textColor:255},
+            margin:{left:15,right:15}
+        });
+        y = doc.lastAutoTable.finalY + 10;
+    }
+    if(tasksArr.length){
+        doc.setFontSize(12);
+        doc.text('Zakres czynnosci', 15, y);
+        y += 6;
+        doc.setFontSize(10);
+        tasksArr.forEach(t => { doc.text('- ' + stripPolishChars(t), 20, y); y += 6; });
+        y += 4;
+    }
+    doc.setFontSize(12);
+    doc.text('Koszty', 15, y);
+    y += 4;
+    doc.autoTable({
+        startY:y,
+        body:[
+            ['Czesci', `${partsArr.reduce((s,p)=>s + (Number(p.price||0) * Number(p.qty||0)),0).toFixed(2)} zl`],
+            ['Usluga', `${Number(estimateData.service_price || 0).toFixed(2)} zl`],
+            ['Razem', `${Number(estimateData.total || 0).toFixed(2)} zl`]
+        ],
+        theme:'plain',
+        margin:{left:15,right:15},
+        columnStyles:{0:{cellWidth:60,fontStyle:'bold'},1:{halign:'right'}}
+    });
+    doc.save('kosztorys_' + stripPolishChars(estimateData.order_number || 'bez_numeru') + '.pdf');
+}
 function generatePDF(){
     const {jsPDF} = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-    });
-
+    const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const clientName = stripPolishChars(document.getElementById("clientName").value || "—");
     const clientPhone = stripPolishChars(document.getElementById("clientPhone").value || "—");
     const deviceName = stripPolishChars(document.getElementById("deviceName").value || "—");
@@ -1328,157 +888,30 @@ function generatePDF(){
     const laborCostVal = stripPolishChars(document.getElementById("laborCost").innerText || "0");
     const travelCostVal = stripPolishChars(document.getElementById("travelCost").innerText || "0");
     const partsCostVal = stripPolishChars(document.getElementById("partsCost").innerText || "0");
-
     let yPos = 25;
-
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text("PROTOKOL NAPRAWY", 105, yPos, {align: 'center'});
-    yPos += 10;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100);
-    doc.text("Numer zlecenia: " + stripPolishChars(orderNumber), 105, yPos, {align: 'center'});
-    doc.setTextColor(0);
-    yPos += 15;
-
-    doc.setDrawColor(180);
-    doc.setFillColor(248, 250, 252);
-    doc.rect(15, yPos-6, 180, 28, 'FD');
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Dane klienta", 20, yPos);
-    yPos += 7;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text("Imie i nazwisko: " + clientName, 20, yPos);
-    yPos += 6;
-    doc.text("Telefon: " + clientPhone, 20, yPos);
-    yPos += 6;
-    doc.text("Maszyna/Urzadzenie: " + deviceName, 20, yPos);
-    yPos += 12;
-
+    doc.setFontSize(22); doc.setFont('helvetica', 'bold'); doc.text("PROTOKOL NAPRAWY", 105, yPos, {align: 'center'}); yPos += 10;
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(100); doc.text("Numer zlecenia: " + stripPolishChars(orderNumber), 105, yPos, {align: 'center'}); doc.setTextColor(0); yPos += 15;
+    doc.rect(15, yPos-6, 180, 28, 'S');
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.text("Dane klienta", 20, yPos); yPos += 7;
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text("Imie i nazwisko: " + clientName, 20, yPos); yPos += 6; doc.text("Telefon: " + clientPhone, 20, yPos); yPos += 6; doc.text("Maszyna/Urzadzenie: " + deviceName, 20, yPos); yPos += 12;
     if(parts.length > 0){
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text("Uzyte czesci", 20, yPos);
-        yPos += 5;
-
-        const partsBody = parts.map(p => [
-            stripPolishChars(p.name || ""),
-            String(p.qty || 0),
-            (p.price || 0).toFixed(2) + " zl",
-            ((p.price || 0) * (p.qty || 0)).toFixed(2) + " zl"
-        ]);
-
-        doc.autoTable({
-            startY: yPos,
-            head: [['Nazwa', 'Ilosc', 'Cena jedn.', 'Razem']],
-            body: partsBody,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [37, 99, 235],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center',
-                fontSize: 10
-            },
-            styles: {
-                fontSize: 9,
-                cellPadding: 4,
-                font: 'helvetica'
-            },
-            columnStyles: {
-                0: { halign: 'left', cellWidth: 80 },
-                1: { halign: 'center', cellWidth: 25 },
-                2: { halign: 'right', cellWidth: 35 },
-                3: { halign: 'right', cellWidth: 35 }
-            },
-            margin: { left: 15, right: 15 }
-        });
-
+        doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.text("Uzyte czesci", 20, yPos); yPos += 5;
+        const partsBody = parts.map(p => [stripPolishChars(p.name || ""), String(p.qty || 0), (p.price || 0).toFixed(2) + " zl", ((p.price || 0) * (p.qty || 0)).toFixed(2) + " zl"]);
+        doc.autoTable({startY: yPos, head: [['Nazwa', 'Ilosc', 'Cena jedn.', 'Razem']], body: partsBody, theme: 'striped', headStyles: {fillColor: [37, 99, 235], textColor: 255}, margin: { left: 15, right: 15 }});
         yPos = doc.lastAutoTable.finalY + 10;
     }
-
     const cleanActivities = activities.map(a => stripPolishChars(a));
-    if(cleanActivities.length > 0){
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text("Wykonane czynnosci serwisowe", 20, yPos);
-        yPos += 6;
-
-        doc.setDrawColor(180);
-        doc.setFillColor(252, 252, 252);
-        
-        const lineHeight = 6;
-        const actHeight = cleanActivities.length * lineHeight + 6;
-        doc.rect(15, yPos-3, 180, actHeight, 'FD');
-
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        cleanActivities.forEach(act => {
-            doc.text("- " + act, 20, yPos);
-            yPos += lineHeight;
-        });
-        yPos += 8;
-    }
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Koszty", 20, yPos);
-    yPos += 5;
-
-    const costsBody = [
-        ['Czesci', partsCostVal + " zl"],
-        ['Robocizna', laborCostVal + " zl"],
-        ['Dojazd', travelCostVal + " zl"]
-    ];
-
-    doc.autoTable({
-        startY: yPos,
-        body: costsBody,
-        theme: 'plain',
-        styles: {
-            fontSize: 10,
-            cellPadding: 3,
-            font: 'helvetica'
-        },
-        columnStyles: {
-            0: { halign: 'left', fontStyle: 'bold', cellWidth: 50 },
-            1: { halign: 'right', cellWidth: 130 }
-        },
-        margin: { left: 15, right: 15 }
-    });
-
+    if(cleanActivities.length > 0){ doc.setFontSize(12); doc.text("Wykonane czynnosci serwisowe", 20, yPos); yPos += 6; cleanActivities.forEach(act => { doc.text("- " + act, 20, yPos); yPos += 6; }); yPos += 6; }
+    doc.setFontSize(12); doc.text("Koszty", 20, yPos); yPos += 5;
+    doc.autoTable({startY: yPos, body: [['Czesci', partsCostVal + " zl"], ['Robocizna', laborCostVal + " zl"], ['Dojazd', travelCostVal + " zl"]], theme: 'plain', margin: { left: 15, right: 15 }, columnStyles: {0: {cellWidth: 50, fontStyle:'bold'}, 1: {halign:'right'}}});
     yPos = doc.lastAutoTable.finalY + 12;
-
-    doc.setDrawColor(37, 99, 235);
-    doc.setFillColor(239, 246, 255);
-    doc.setLineWidth(0.8);
-    doc.rect(15, yPos-7, 180, 15, 'FD');
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(37, 99, 235);
-    doc.text("LACZNIE: " + totalCost + " zl", 105, yPos, {align: 'center'});
-    doc.setTextColor(0);
-
-    yPos = 285;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(120);
-    const dateStr = new Date().toLocaleString('pl-PL');
-    doc.text("Wygenerowano: " + stripPolishChars(dateStr), 105, yPos, {align: 'center'});
-
+    doc.setFontSize(18); doc.setTextColor(37, 99, 235); doc.text("LACZNIE: " + totalCost + " zl", 105, yPos, {align: 'center'}); doc.setTextColor(0);
     doc.save("zlecenie_" + stripPolishChars(orderNumber) + ".pdf");
 }
 
-// ---------- START ----------
 renderOrders();
 loadWarehouse();
+renderEstimates();
 calculate();
 calculateEstimate();
 </script>
